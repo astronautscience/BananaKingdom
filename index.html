@@ -1026,7 +1026,7 @@ showNotification(stats.label+' banana harvested! ('+stats.hp+' HP, '+stats.atk+'
 // BATTLE SYSTEM
 // ===========================================================
 function startBattle(){if(!gs.army.length)return;const stage=STAGES[gs.currentStage];if(!stage)return;
-gs.screen='battle';gs.battleActive=true;gs.battleTime=0;gs.selectedUnit=null;gs.playerUnits=[];gs.enemyUnits=[];
+gs.screen='battle';gs.battleActive=true;gs.battleTime=0;gs.selectedUnit=null;gs.playerUnits=[];gs.enemyUnits=[];gs._endQueued=false;
 kingdomGroup.visible=false;battleGroup.visible=true;
 buildBattleMap(stage.name);
 gs.army.forEach((s,i)=>{const boosted=applyShopAbilities({hp:s.hp,maxHp:s.hp,atk:s.atk,speed:s.speed,color:s.color,color2:s.color2,fertType:s.fertType,ability:s.ability,weapon:s.weapon||null});const sol=createBananaSoldier(boosted);sol.userData.armyIndex=i;const sp=gs.army.length>1?(i/(gs.army.length-1))*6-3:0;
@@ -1144,8 +1144,8 @@ if(u.userData.wings){const wf=Math.sin(gs.battleTime*12)*0.3;u.userData.wings[0]
 for(let i=gs.playerUnits.length-1;i>=0;i--)if(gs.playerUnits[i].userData.hp<=0){deathEffect(gs.playerUnits[i]);battleGroup.remove(gs.playerUnits[i]);gs.compostCount++;gs.playerUnits.splice(i,1)}
 for(let i=gs.enemyUnits.length-1;i>=0;i--)if(gs.enemyUnits[i].userData.hp<=0){deathEffect(gs.enemyUnits[i]);battleGroup.remove(gs.enemyUnits[i]);gs.enemyUnits.splice(i,1)}
 updateBattleHUD();
-if(!gs.playerUnits.length&&gs.battleActive){gs.battleActive=false;setTimeout(()=>endBattle(false),800)}
-else if(!gs.enemyUnits.length&&gs.battleActive){gs.battleActive=false;setTimeout(()=>endBattle(true),800)}}
+if(!gs.playerUnits.length&&gs.battleActive){gs.battleActive=false;if(!gs._endQueued){gs._endQueued=true;setTimeout(()=>{gs._endQueued=false;endBattle(false)},800)}}
+else if(!gs.enemyUnits.length&&gs.battleActive){gs.battleActive=false;if(!gs._endQueued){gs._endQueued=true;setTimeout(()=>{gs._endQueued=false;endBattle(true)},800)}}}
 
 function showVictoryScreen(rw,cr,dropKey,sc){
 $('result-title').textContent='Victory!';$('result-title').style.color='#FFD700';
@@ -1187,7 +1187,7 @@ let t='Your bananas were squashed...';if(sc>0)t=sc+' banana(s) survived, but the
 $('result-buttons').innerHTML='<button class="btn-retry" onclick="window._rtk()">Return to Kingdom</button>';
 $('result-overlay').style.display='flex'}}catch(err){alert('ERROR in endBattle: '+err.message+' at line '+err.stack);console.error(err)}}
 
-window._rtk=function(){gs.screen='kingdom';gs.battleActive=false;gs.compostCount=0;$('result-overlay').style.display='none';
+window._rtk=function(){if(gs.screen==='kingdom')return;gs.screen='kingdom';gs.battleActive=false;gs.compostCount=0;gs.playerUnits=[];gs.enemyUnits=[];$('result-overlay').style.display='none';
 kingdomGroup.visible=true;battleGroup.visible=false;clearBattleDecorations();scene.fog.color.set(0xf0d898);updateArmyUI();updateBattleBtn();updateResourceUI();
 $('army-panel').style.display='block';$('battle-btn').style.display='block';$('hint-text').style.display='block';$('compost-bar').style.display='block';$('fert-panel').style.display='block';$('active-fert-indicator').style.display='block';$('save-btns').style.display='flex';$('stage-select-panel').style.display='block';$('mani-panel').style.display='block';setCamPreset('default',true);updateCompostUI();updateFertShopUI();updateManiShopUI();saveGame()};
 
