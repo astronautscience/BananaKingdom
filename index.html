@@ -1148,6 +1148,7 @@ if(!gs.playerUnits.length&&gs.battleActive){gs.battleActive=false;if(!gs._endQue
 else if(!gs.enemyUnits.length&&gs.battleActive){gs.battleActive=false;if(!gs._endQueued){gs._endQueued=true;setTimeout(()=>{gs._endQueued=false;endBattle(true)},800)}}}
 
 function showVictoryScreen(rw,cr,dropKey,sc){
+if(gs.screen==='kingdom')return;
 $('result-title').textContent='Victory!';$('result-title').style.color='#FFD700';
 const fertName=FERTILIZERS[dropKey]?FERTILIZERS[dropKey].name:'Mystery';
 let t='+'+rw+' Manicorns';if(cr>0)t+='  |  +'+cr+' Nana Coins (compost)';t+='\n+1 '+fertName+' fertilizer!';
@@ -1175,12 +1176,12 @@ if(stageData&&stageData.cutscene){
 gs.fertilizers.tomato=(gs.fertilizers.tomato||0)+40;gs.weapons.sword+=15;gs.weapons.bow+=15;gs.seenL4Cutscene=true;
 const lines=['The outpost falls silent...','Banana citizens emerge from the shadows, cheering!','They carry barrels of captured weapons...\n15 Swords and 15 Bows!\n...and a strange red fertilizer...','🍅 40x TOMATO FERTILIZER ACQUIRED! 🍅','\"Be careful... it\'s unpredictable.\"','The army marches onward toward the kingdom...'];
 const overlay=$('cutscene-overlay');const textDiv=$('cutscene-text');overlay.style.display='flex';textDiv.innerHTML='';
-let lineIdx=0;
-function showNextLine(){if(lineIdx>=lines.length){overlay.onclick=null;overlay.style.display='none';showVictoryScreen(rw,cr,dropKey,sc);return}
+let lineIdx=0;let cutsceneDone=false;
+function showNextLine(){if(lineIdx>=lines.length){if(!cutsceneDone){cutsceneDone=true;clearInterval(autoTimer);overlay.onclick=null;overlay.style.display='none';showVictoryScreen(rw,cr,dropKey,sc)}return}
 const span=document.createElement('span');span.className='scene-line';span.style.animationDelay=(lineIdx*0)+'s';span.textContent=lines[lineIdx];textDiv.appendChild(span);lineIdx++}
-let autoTimer=setInterval(()=>{showNextLine();if(lineIdx>lines.length)clearInterval(autoTimer)},1800);
+let autoTimer=setInterval(()=>{showNextLine()},1800);
 showNextLine();
-overlay.onclick=function(){clearInterval(autoTimer);while(lineIdx<lines.length)showNextLine();setTimeout(()=>{overlay.onclick=null;overlay.style.display='none';showVictoryScreen(rw,cr,dropKey,sc)},600)}}
+overlay.onclick=function(){clearInterval(autoTimer);while(lineIdx<lines.length){const span=document.createElement('span');span.className='scene-line';span.textContent=lines[lineIdx];textDiv.appendChild(span);lineIdx++}if(!cutsceneDone){cutsceneDone=true;setTimeout(()=>{overlay.onclick=null;overlay.style.display='none';showVictoryScreen(rw,cr,dropKey,sc)},600)}}}
 else{showVictoryScreen(rw,cr,dropKey,sc)}}
 else{const cr=gs.compostCount;gs.nanaCoins+=cr;$('result-title').textContent='Defeated!';$('result-title').style.color='#e74c3c';
 let t='Your bananas were squashed...';if(sc>0)t=sc+' banana(s) survived, but the battle was lost...';if(cr>0)t+='\n+'+cr+' Nana Coins from compost';$('result-text').textContent=t;
