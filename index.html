@@ -1,0 +1,1142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Banana Kingdom</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{overflow:hidden;background:#000;font-family:'Segoe UI',Arial,sans-serif}
+canvas{display:block;position:fixed;top:0;left:0;z-index:1;touch-action:none}
+#title-screen{position:fixed;top:0;left:0;right:0;bottom:0;z-index:100;background:linear-gradient(135deg,#1a1000 0%,#4a3000 30%,#6a4400 60%,#3a2000 100%);display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;user-select:none}
+#title-screen h1{font-size:clamp(2.5rem,8vw,5rem);color:#FFD700;text-shadow:0 0 30px rgba(255,215,0,0.6),0 4px 8px rgba(0,0,0,0.8);margin-bottom:10px;letter-spacing:2px}
+#title-screen .subtitle{font-size:clamp(0.9rem,2.5vw,1.3rem);color:#c9a44a;margin-bottom:40px}
+#title-screen .start-btn{font-size:clamp(1.2rem,3vw,1.6rem);color:#fff;background:#d4830a;border:none;border-radius:12px;padding:14px 48px;cursor:pointer;box-shadow:0 4px 20px rgba(212,131,10,0.5);transition:transform .15s,background .15s}
+#title-screen .start-btn:hover{background:#e89b1a;transform:scale(1.05)}
+#title-screen .controls-info{margin-top:30px;color:#a08050;font-size:.85rem;text-align:center;line-height:1.7}
+#hud{position:fixed;top:0;left:0;right:0;z-index:10;display:none;pointer-events:none}
+#resource-bar{display:flex;justify-content:center;gap:30px;padding:10px 20px;background:linear-gradient(180deg,rgba(0,0,0,.7) 0%,rgba(0,0,0,0) 100%);font-size:clamp(.9rem,2.5vw,1.1rem);color:#fff;font-weight:600}
+.res-item{display:flex;align-items:center;gap:6px}.res-icon{font-size:1.3em}
+#army-panel{position:fixed;left:10px;top:60px;z-index:10;display:none;background:rgba(0,0,0,.75);border-radius:12px;padding:12px;color:#fff;width:160px;pointer-events:auto;backdrop-filter:blur(4px);border:1px solid rgba(255,215,0,.3)}
+#army-panel h3{font-size:.9rem;color:#FFD700;margin-bottom:8px;text-align:center}
+#army-list{display:flex;flex-direction:column;gap:4px;max-height:300px;overflow-y:auto}
+.army-unit{display:flex;align-items:center;gap:8px;padding:4px 6px;background:rgba(255,255,255,.08);border-radius:6px;font-size:.8rem}
+.army-unit .unit-color{width:14px;height:22px;border-radius:7px;flex-shrink:0}
+.army-unit .unit-stats{line-height:1.3}
+#army-count{text-align:center;font-size:.75rem;color:#aaa;margin-top:6px}
+#battle-btn{position:fixed;right:15px;bottom:80px;z-index:10;display:none;background:linear-gradient(135deg,#c0392b,#e74c3c);color:#fff;border:3px solid #e74c3c;border-radius:16px;padding:16px 24px;font-size:clamp(1rem,2.5vw,1.2rem);font-weight:700;cursor:pointer;box-shadow:0 4px 20px rgba(231,76,60,.5);pointer-events:auto;transition:transform .15s}
+#battle-btn:hover{transform:scale(1.05)}#battle-btn:disabled{opacity:.5;cursor:not-allowed;transform:none}
+#battle-btn .stage-label{font-size:.75em;opacity:.8;display:block;margin-top:2px}
+#hint-text{position:fixed;bottom:15px;left:50%;transform:translateX(-50%);z-index:10;color:rgba(255,255,255,.7);font-size:.85rem;text-align:center;display:none;pointer-events:none;text-shadow:0 1px 4px rgba(0,0,0,.8)}
+.harvest-popup{position:fixed;z-index:20;color:#FFD700;font-weight:700;font-size:1.3rem;pointer-events:none;text-shadow:0 2px 6px rgba(0,0,0,.8);animation:popUp 1s ease-out forwards}
+@keyframes popUp{0%{opacity:1;transform:translateY(0) scale(1)}100%{opacity:0;transform:translateY(-60px) scale(1.2)}}
+#battle-hud{position:fixed;top:50px;left:50%;transform:translateX(-50%);z-index:15;display:none;color:#fff;font-size:1.1rem;font-weight:600;background:rgba(0,0,0,.6);padding:8px 24px;border-radius:10px;text-align:center;backdrop-filter:blur(4px)}
+#battle-hud .vs{color:#e74c3c;font-size:1.4rem;margin:0 10px}
+#result-overlay{position:fixed;top:0;left:0;right:0;bottom:0;z-index:50;display:none;flex-direction:column;align-items:center;justify-content:center;background:rgba(0,0,0,.8);backdrop-filter:blur(6px)}
+#result-overlay h2{font-size:clamp(2rem,6vw,3.5rem);margin-bottom:10px;text-shadow:0 0 30px currentColor}
+#result-overlay .reward-text{font-size:1.2rem;color:#ddd;margin-bottom:30px;white-space:pre-line}
+#result-overlay button{font-size:1.1rem;padding:12px 40px;border-radius:10px;border:none;cursor:pointer;font-weight:600;margin:5px;transition:transform .15s}
+#result-overlay button:hover{transform:scale(1.05)}
+.btn-continue{background:#27ae60;color:#fff}.btn-retry{background:#e67e22;color:#fff}
+.notification{position:fixed;top:80px;left:50%;transform:translateX(-50%);z-index:30;background:rgba(0,0,0,.8);color:#FFD700;padding:10px 24px;border-radius:8px;font-weight:600;pointer-events:none;animation:notifAnim 2s ease-out forwards;backdrop-filter:blur(4px)}
+@keyframes notifAnim{0%{opacity:0;transform:translateX(-50%) translateY(-10px)}15%{opacity:1;transform:translateX(-50%) translateY(0)}70%{opacity:1}100%{opacity:0;transform:translateX(-50%) translateY(-20px)}}
+#compost-bar{position:fixed;bottom:15px;left:50%;transform:translateX(-50%);z-index:10;display:none;background:rgba(80,50,20,.85);color:#ddd;padding:8px 20px;border-radius:8px;font-size:.85rem;pointer-events:none;backdrop-filter:blur(4px);border:1px solid rgba(139,105,20,.4)}
+#cam-panel{position:fixed;right:15px;top:60px;z-index:12;display:none;pointer-events:auto}
+#cam-panel .cam-btn{display:block;width:100%;margin-bottom:4px;padding:8px 14px;background:rgba(0,0,0,.7);color:#fff;border:1px solid rgba(255,215,0,.35);border-radius:8px;font-size:.8rem;font-weight:600;cursor:pointer;text-align:center;backdrop-filter:blur(4px);transition:background .15s,border-color .15s}
+#cam-panel .cam-btn:hover{background:rgba(255,215,0,.25);border-color:#FFD700}
+#cam-panel .cam-btn.active{background:rgba(255,215,0,.3);border-color:#FFD700;color:#FFD700}
+#cam-label{position:fixed;right:15px;top:42px;z-index:12;display:none;color:rgba(255,215,0,.7);font-size:.7rem;font-weight:600;letter-spacing:1px;pointer-events:none}
+
+/* === FERTILIZER SHOP === */
+#fert-panel{position:fixed;right:15px;bottom:140px;z-index:10;display:none;background:rgba(0,0,0,.78);border-radius:12px;padding:12px;color:#fff;width:185px;pointer-events:auto;backdrop-filter:blur(4px);border:1px solid rgba(100,200,60,.35);max-height:420px;overflow-y:auto}
+#fert-panel h3{font-size:.9rem;color:#7ddf42;margin-bottom:8px;text-align:center}
+.fert-item{display:flex;align-items:center;gap:8px;padding:5px 6px;background:rgba(255,255,255,.06);border-radius:7px;font-size:.78rem;margin-bottom:4px;cursor:pointer;border:1px solid transparent;transition:border-color .15s,background .15s}
+.fert-item:hover{background:rgba(255,255,255,.12);border-color:rgba(100,200,60,.4)}
+.fert-item.selected{border-color:#7ddf42;background:rgba(100,200,60,.15)}
+.fert-icon{font-size:1.3em;flex-shrink:0}
+.fert-info{line-height:1.3}
+.fert-name{font-weight:600;color:#b8e87c}
+.fert-cost{font-size:.68rem;color:#aaa}
+.fert-count{font-size:.65rem;color:#888}
+#fert-actions{display:flex;flex-direction:column;gap:4px;margin-top:8px}
+#fert-actions button{padding:6px 8px;border-radius:7px;border:none;cursor:pointer;font-size:.75rem;font-weight:600;transition:transform .12s,opacity .12s;color:#fff}
+#fert-actions button:disabled{opacity:.4;cursor:not-allowed;transform:none}
+#fert-actions button:not(:disabled):hover{transform:scale(1.03)}
+#fert-buy-btn{background:#2e7d32}
+#fert-apply-btn{background:#c67c1f}
+#fert-combine-btn{background:#6a1b9a}
+#fert-clear-btn{background:#555;font-size:.7rem}
+#active-fert-indicator{position:fixed;right:15px;bottom:118px;z-index:10;display:none;background:rgba(0,0,0,.65);color:#7ddf42;padding:5px 14px;border-radius:6px;font-size:.78rem;font-weight:600;pointer-events:none;backdrop-filter:blur(3px);border:1px solid rgba(100,200,60,.25)}
+#save-btns{position:fixed;bottom:15px;right:15px;z-index:12;display:none;pointer-events:auto;display:none;gap:6px}
+#save-btns button{padding:6px 14px;border:1px solid rgba(255,215,0,.4);border-radius:8px;background:rgba(0,0,0,.7);color:#fff;font-size:.75rem;font-weight:600;cursor:pointer;backdrop-filter:blur(4px);transition:background .15s}
+#save-btns button:hover{background:rgba(255,215,0,.25);border-color:#FFD700}
+#title-screen .continue-btn{font-size:clamp(1rem,2.5vw,1.3rem);color:#fff;background:#27ae60;border:none;border-radius:12px;padding:12px 40px;cursor:pointer;box-shadow:0 4px 20px rgba(39,174,96,.4);transition:transform .15s,background .15s;margin-top:10px;display:none}
+#title-screen .continue-btn:hover{background:#2ecc71;transform:scale(1.05)}
+</style>
+</head>
+<body>
+<div id="title-screen"><h1>Banana Kingdom</h1><div class="subtitle">Build your banana army. Defeat the tomatoes.</div><button class="start-btn" id="start-btn">New Game</button><button class="continue-btn" id="continue-btn">Continue</button><div class="controls-info">Click bananas on the tree to harvest them<br>Timing matters &mdash; yellow = perfect!<br>Build your army, then battle!</div></div>
+<div id="hud"><div id="resource-bar"><div class="res-item"><span class="res-icon">&#x1F34C;</span> Manicorns: <span id="manicorn-count">0</span></div><div class="res-item"><span class="res-icon">&#x1FA99;</span> Nana Coins: <span id="nana-count">5</span></div></div></div>
+<div id="army-panel"><h3>Your Army</h3><div id="army-list"></div><div id="army-count">0 / 8</div></div>
+<button id="battle-btn" disabled>Battle!<span class="stage-label">Stage 1</span></button>
+<div id="hint-text">Click bananas on the tree to harvest!</div>
+<div id="battle-hud"><span id="b-banana-count">0</span> <span class="vs">VS</span> <span id="b-tomato-count">0</span></div>
+<div id="result-overlay"><h2 id="result-title">Victory!</h2><div class="reward-text" id="result-text"></div><div id="result-buttons"></div></div>
+<div id="compost-bar"></div>
+<div id="save-btns"><button id="save-btn">Save Game</button><button id="load-btn">Load Game</button></div>
+<div id="cam-label">CAMERA</div>
+<div id="cam-panel">
+<button class="cam-btn active" data-cam="default">Default</button>
+<button class="cam-btn" data-cam="top">Top Down</button>
+<button class="cam-btn" data-cam="side">Side</button>
+<button class="cam-btn" data-cam="front">Front</button>
+<button class="cam-btn" data-cam="low">Low Angle</button>
+<button class="cam-btn" data-cam="free">Free Cam</button>
+</div>
+
+<!-- Fertilizer Panel -->
+<div id="fert-panel">
+<h3>Fertilizer Shop</h3>
+<div id="fert-list"></div>
+<div id="fert-actions">
+<button id="fert-buy-btn" disabled>Buy Selected</button>
+<button id="fert-apply-btn" disabled>Apply to Tree</button>
+<button id="fert-combine-btn" disabled>Combine</button>
+<button id="fert-clear-btn">Clear Fertilizer</button>
+</div>
+</div>
+<div id="active-fert-indicator"></div>
+
+<script type="importmap">
+{"imports":{"three":"https://unpkg.com/three@0.160.0/build/three.module.js","three/addons/":"https://unpkg.com/three@0.160.0/examples/jsm/"}}
+</script>
+<script type="module">
+import * as THREE from 'three';
+import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
+import {EffectComposer} from 'three/addons/postprocessing/EffectComposer.js';
+import {RenderPass} from 'three/addons/postprocessing/RenderPass.js';
+import {UnrealBloomPass} from 'three/addons/postprocessing/UnrealBloomPass.js';
+
+const isMobile=/iPad|iPhone|Android/i.test(navigator.userAgent)||'ontouchstart' in window;
+
+// === TEXTURES ===
+function mkTex(sz,fn){const c=document.createElement('canvas');c.width=c.height=sz;fn(c.getContext('2d'),sz);const t=new THREE.CanvasTexture(c);t.wrapS=t.wrapT=THREE.RepeatWrapping;return t}
+function noiseFill(ctx,s,r,g,b,v){for(let y=0;y<s;y++)for(let x=0;x<s;x++){const d=(Math.random()-.5)*v;ctx.fillStyle=`rgb(${Math.max(0,Math.min(255,r+d))},${Math.max(0,Math.min(255,g+d))},${Math.max(0,Math.min(255,b+d))})`;ctx.fillRect(x,y,1,1)}}
+
+const grassTex=mkTex(128,(ctx,s)=>{noiseFill(ctx,s,75,140,55,30);ctx.strokeStyle='rgba(50,110,35,0.3)';for(let i=0;i<200;i++){ctx.beginPath();const x=Math.random()*s,y=Math.random()*s;ctx.moveTo(x,y);ctx.lineTo(x+(Math.random()-.5)*3,y-3-Math.random()*5);ctx.stroke()}});grassTex.repeat.set(8,8);
+const dirtTex=mkTex(64,(ctx,s)=>{noiseFill(ctx,s,120,90,55,25)});dirtTex.repeat.set(3,3);
+const barkTex=mkTex(64,(ctx,s)=>{noiseFill(ctx,s,85,55,30,20);ctx.strokeStyle='rgba(60,35,15,0.5)';ctx.lineWidth=1.5;for(let y=0;y<s;y+=4+Math.random()*3){ctx.beginPath();ctx.moveTo(0,y);for(let x=0;x<s;x+=4)ctx.lineTo(x,y+(Math.random()-.5)*2);ctx.stroke()}});barkTex.repeat.set(1,3);
+const leafTex=mkTex(64,(ctx,s)=>{noiseFill(ctx,s,50,130,40,20);ctx.strokeStyle='rgba(35,100,25,0.6)';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(s/2,0);ctx.lineTo(s/2,s);ctx.stroke();for(let y=8;y<s;y+=10){ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(s/2,y);ctx.lineTo(s/2+20,y-5);ctx.stroke();ctx.beginPath();ctx.moveTo(s/2,y);ctx.lineTo(s/2-20,y-5);ctx.stroke()}});
+const cobbleTex=mkTex(128,(ctx,s)=>{ctx.fillStyle='#8a8070';ctx.fillRect(0,0,s,s);for(let y=0;y<s;y+=12)for(let x=0;x<s;x+=12){const off=(Math.floor(y/12)%2)*6;ctx.fillStyle=`rgb(${100+Math.random()*40},${95+Math.random()*35},${85+Math.random()*30})`;ctx.fillRect(x+off,y+1,10,10)}});cobbleTex.repeat.set(6,6);
+const wallTex=mkTex(64,(ctx,s)=>{ctx.fillStyle='#a09580';ctx.fillRect(0,0,s,s);for(let y=0;y<s;y+=8)for(let x=0;x<s;x+=16){const off=(Math.floor(y/8)%2)*8;ctx.fillStyle=`rgb(${140+Math.random()*30},${130+Math.random()*25},${115+Math.random()*20})`;ctx.fillRect(x+off,y+.5,15,7);ctx.strokeStyle='rgba(80,65,50,0.4)';ctx.strokeRect(x+off,y+.5,15,7)}});wallTex.repeat.set(3,2);
+const roofTex=mkTex(64,(ctx,s)=>{ctx.fillStyle='#7a3025';ctx.fillRect(0,0,s,s);for(let y=0;y<s;y+=6)for(let x=0;x<s;x+=8){const off=(Math.floor(y/6)%2)*4;ctx.fillStyle=`rgb(${100+Math.random()*30},${35+Math.random()*15},${25+Math.random()*10})`;ctx.beginPath();ctx.arc(x+off+4,y+3,4,Math.PI,0);ctx.fill()}});
+const stoneTex=mkTex(32,(ctx,s)=>{noiseFill(ctx,s,160,155,140,15)});
+const battleGrassTex=mkTex(128,(ctx,s)=>{noiseFill(ctx,s,90,130,50,25)});battleGrassTex.repeat.set(10,5);
+
+// === CONSTANTS ===
+const RIPENESS={GREEN:{min:0,max:3,hp:50,atk:5,color:0x7CCC47,label:'Green',quality:.5},YELLOW:{min:3,max:6,hp:100,atk:12,color:0xFFD700,label:'Perfect',quality:1},BROWN:{min:6,max:9,hp:65,atk:7,color:0x8B6914,label:'Brown',quality:.65}};
+const STAGES=[
+{name:'Garden Gate',enemies:[{hp:40,atk:4,speed:1.8,scale:.8},{hp:40,atk:4,speed:1.8,scale:.8},{hp:40,atk:4,speed:1.8,scale:.8}],reward:10},
+{name:'Tomato Patch',enemies:[{hp:60,atk:6,speed:2,scale:.9},{hp:60,atk:6,speed:2,scale:.9},{hp:60,atk:6,speed:2,scale:.9},{hp:60,atk:6,speed:2,scale:.9},{hp:60,atk:6,speed:2,scale:.9}],reward:20},
+{name:'Tomato Fort',enemies:[{hp:80,atk:8,speed:2,scale:.9},{hp:80,atk:8,speed:2,scale:.9},{hp:80,atk:8,speed:2,scale:.9},{hp:80,atk:8,speed:2,scale:.9},{hp:150,atk:15,speed:1.5,scale:1.4,boss:true}],reward:50}];
+const BANANA_SLOTS=[new THREE.Vector3(-.7,4,.5),new THREE.Vector3(.6,4.4,-.4),new THREE.Vector3(-.4,3.4,-.6),new THREE.Vector3(.7,3.7,.6),new THREE.Vector3(0,4.8,0)];
+
+// === FERTILIZER SYSTEM ===
+const FERTILIZERS={
+    plainana:{name:'Plainana',icon:'\u2708',cost:2,hp:80,atk:8,speed:3.2,color:0xFFE44D,color2:null,label:'Plainana',ability:null},
+    buff:{name:'Buff Banana',icon:'\uD83D\uDCAA',cost:4,hp:150,atk:18,speed:1.8,color:0xFFAA00,color2:null,label:'Buff',ability:null},
+    halloween:{name:'Halloween',icon:'\uD83C\uDF83',cost:5,hp:110,atk:14,speed:2.2,color:0xFF6600,color2:0x330066,label:'Spooky',ability:'lifesteal',season:'halloween'},
+    christmas:{name:'Christmas',icon:'\uD83C\uDF84',cost:5,hp:120,atk:10,speed:2.0,color:0xCC0000,color2:0x00AA00,label:'Festive',ability:'regen',season:'christmas'},
+    volcanic:{name:'Volcanic',icon:'\uD83C\uDF0B',cost:6,hp:90,atk:22,speed:2.0,color:0xFF2200,color2:0xFF8800,label:'Volcanic',ability:'burn'},
+    frost:{name:'Frost',icon:'\u2744\uFE0F',cost:5,hp:130,atk:10,speed:1.9,color:0x88CCFF,color2:0xCCEEFF,label:'Frost',ability:'slow'},
+    electric:{name:'Electric',icon:'\u26A1',cost:6,hp:95,atk:16,speed:3.5,color:0xFFFF00,color2:0x88AAFF,label:'Electric',ability:'chain'},
+    shadow:{name:'Shadow',icon:'\uD83C\uDF11',cost:7,hp:100,atk:18,speed:2.8,color:0x332244,color2:0x6600CC,label:'Shadow',ability:'dodge'},
+    golden:{name:'Golden',icon:'\uD83D\uDC51',cost:10,hp:200,atk:20,speed:2.2,color:0xFFD700,color2:0xFFA500,label:'Golden',ability:'regen'},
+    toxic:{name:'Toxic',icon:'\u2620\uFE0F',cost:5,hp:85,atk:12,speed:2.4,color:0x44FF00,color2:0x228800,label:'Toxic',ability:'poison'},
+    crystal:{name:'Crystal',icon:'\uD83D\uDC8E',cost:8,hp:160,atk:14,speed:1.6,color:0xAADDFF,color2:0xEEEEFF,label:'Crystal',ability:'shield'},
+    cosmic:{name:'Cosmic',icon:'\uD83C\uDF0C',cost:9,hp:140,atk:17,speed:2.5,color:0x6600CC,color2:0xFF00FF,label:'Cosmic',ability:'warp'},
+    honey:{name:'Honey',icon:'\uD83C\uDF6F',cost:3,hp:110,atk:9,speed:2.0,color:0xFFBB33,color2:0xCC8800,label:'Honey',ability:'sticky'},
+    radioactive:{name:'Radioactive',icon:'\u2622\uFE0F',cost:7,hp:75,atk:25,speed:2.6,color:0x33FF33,color2:0xCCFF00,label:'Radioactive',ability:'aoe'},
+    ocean:{name:'Ocean',icon:'\uD83C\uDF0A',cost:4,hp:120,atk:11,speed:2.3,color:0x2288CC,color2:0x44CCFF,label:'Ocean',ability:'regen'},
+    cherry:{name:'Cherry Blossom',icon:'\uD83C\uDF38',cost:4,hp:100,atk:13,speed:2.6,color:0xFF88AA,color2:0xFFCCDD,label:'Cherry',ability:null,season:'spring'},
+    thunder:{name:'Thunder',icon:'\uD83C\uDF29\uFE0F',cost:6,hp:85,atk:20,speed:3.0,color:0x444444,color2:0xFFFF00,label:'Thunder',ability:'stun'},
+    ancient:{name:'Ancient',icon:'\uD83C\uDFDB\uFE0F',cost:8,hp:180,atk:15,speed:1.5,color:0xAA8855,color2:0xDDCC88,label:'Ancient',ability:'lifesteal'},
+    candy:{name:'Candy',icon:'\uD83C\uDF6C',cost:3,hp:90,atk:11,speed:2.8,color:0xFF44AA,color2:0x44FFAA,label:'Candy',ability:null},
+    lunar:{name:'Lunar',icon:'\uD83C\uDF19',cost:7,hp:135,atk:16,speed:2.1,color:0xCCCCFF,color2:0x6666AA,label:'Lunar',ability:'dodge'},
+    inferno:{name:'Inferno',icon:'\uD83D\uDD25',cost:8,hp:70,atk:28,speed:2.4,color:0xFF4400,color2:0xFFCC00,label:'Inferno',ability:'burn'},
+    nature:{name:'Nature',icon:'\uD83C\uDF3F',cost:3,hp:130,atk:8,speed:2.0,color:0x33AA33,color2:0x88DD44,label:'Nature',ability:'regen'},
+    steel:{name:'Steel',icon:'\uD83D\uDEE1\uFE0F',cost:6,hp:190,atk:12,speed:1.4,color:0x888899,color2:0xBBBBCC,label:'Steel',ability:'shield'},
+    phantom:{name:'Phantom',icon:'\uD83D\uDC7B',cost:6,hp:95,atk:15,speed:3.0,color:0xBB88FF,color2:0x442266,label:'Phantom',ability:'dodge'}
+};
+
+function isFertInSeason(key){
+    const fert=FERTILIZERS[key];
+    if(!fert||!fert.season)return true;
+    const now=new Date();
+    const m=now.getMonth(); // 0-indexed: 0=Jan, 9=Oct, 10=Nov, 11=Dec
+    if(fert.season==='halloween')return m>=9&&m<=10; // Oct 1 – Nov 30
+    if(fert.season==='christmas')return m===11||m===0; // Dec 1 – Jan 31
+    if(fert.season==='spring')return m>=2&&m<=4; // Mar 1 – May 31
+    return true;
+}
+
+const FERTILIZER_COMBOS={};
+function comboKey(a,b){return [a,b].sort().join('+')}
+// Original combos
+FERTILIZER_COMBOS[comboKey('plainana','buff')]={name:'Turbo Titan',hp:160,atk:16,speed:3.0,color:0xFFCC22,label:'Turbo Titan',ability:null};
+FERTILIZER_COMBOS[comboKey('plainana','halloween')]={name:'Phantom Jet',hp:95,atk:12,speed:3.5,color:0xFF8833,label:'Phantom Jet',ability:'lifesteal'};
+FERTILIZER_COMBOS[comboKey('plainana','christmas')]={name:'Sleigh Racer',hp:100,atk:10,speed:3.4,color:0xFF4444,label:'Sleigh Racer',ability:'regen'};
+FERTILIZER_COMBOS[comboKey('buff','halloween')]={name:'Nightmare Hulk',hp:170,atk:20,speed:1.6,color:0xBB4400,label:'Nightmare Hulk',ability:'lifesteal'};
+FERTILIZER_COMBOS[comboKey('buff','christmas')]={name:'Jolly Giant',hp:180,atk:16,speed:1.7,color:0xDD2200,label:'Jolly Giant',ability:'regen'};
+FERTILIZER_COMBOS[comboKey('halloween','christmas')]={name:'Dark Noel',hp:130,atk:14,speed:2.1,color:0x882288,label:'Dark Noel',ability:'lifesteal,regen'};
+// Volcanic combos
+FERTILIZER_COMBOS[comboKey('volcanic','frost')]={name:'Obsidian',hp:140,atk:20,speed:2.0,color:0x333344,label:'Obsidian',ability:'shield,burn'};
+FERTILIZER_COMBOS[comboKey('volcanic','electric')]={name:'Plasma Storm',hp:80,atk:30,speed:3.2,color:0xFF4488,label:'Plasma Storm',ability:'chain,burn'};
+FERTILIZER_COMBOS[comboKey('volcanic','buff')]={name:'Magma Brute',hp:200,atk:24,speed:1.5,color:0xCC3300,label:'Magma Brute',ability:'burn'};
+// Frost combos
+FERTILIZER_COMBOS[comboKey('frost','electric')]={name:'Blizzard Bolt',hp:110,atk:18,speed:3.0,color:0x44DDFF,label:'Blizzard Bolt',ability:'slow,chain'};
+FERTILIZER_COMBOS[comboKey('frost','shadow')]={name:'Black Ice',hp:120,atk:16,speed:2.6,color:0x224466,label:'Black Ice',ability:'slow,dodge'};
+FERTILIZER_COMBOS[comboKey('frost','nature')]={name:'Permafrost',hp:170,atk:10,speed:1.8,color:0x66CCAA,label:'Permafrost',ability:'slow,regen'};
+// Electric combos
+FERTILIZER_COMBOS[comboKey('electric','shadow')]={name:'Dark Lightning',hp:90,atk:22,speed:3.4,color:0x8844FF,label:'Dark Lightning',ability:'chain,dodge'};
+FERTILIZER_COMBOS[comboKey('electric','steel')]={name:'Magnetron',hp:180,atk:18,speed:2.0,color:0xAABBDD,label:'Magnetron',ability:'chain,shield'};
+// Shadow combos
+FERTILIZER_COMBOS[comboKey('shadow','golden')]={name:'Eclipse',hp:180,atk:22,speed:2.5,color:0x443300,label:'Eclipse',ability:'dodge,regen'};
+FERTILIZER_COMBOS[comboKey('shadow','phantom')]={name:'Void Walker',hp:85,atk:20,speed:3.5,color:0x220044,label:'Void Walker',ability:'dodge'};
+// Golden combos
+FERTILIZER_COMBOS[comboKey('golden','crystal')]={name:'Diamond King',hp:250,atk:22,speed:1.8,color:0xFFEECC,label:'Diamond King',ability:'regen,shield'};
+FERTILIZER_COMBOS[comboKey('golden','ancient')]={name:'Pharaoh',hp:260,atk:24,speed:1.6,color:0xDDAA33,label:'Pharaoh',ability:'lifesteal,regen'};
+// Toxic combos
+FERTILIZER_COMBOS[comboKey('toxic','radioactive')]={name:'Meltdown',hp:60,atk:35,speed:2.8,color:0x88FF00,label:'Meltdown',ability:'poison,aoe'};
+FERTILIZER_COMBOS[comboKey('toxic','nature')]={name:'Acid Vine',hp:130,atk:14,speed:2.2,color:0x22CC22,label:'Acid Vine',ability:'poison,regen'};
+FERTILIZER_COMBOS[comboKey('toxic','ocean')]={name:'Oil Spill',hp:110,atk:16,speed:2.0,color:0x115533,label:'Oil Spill',ability:'poison,slow'};
+// Crystal combos
+FERTILIZER_COMBOS[comboKey('crystal','steel')]={name:'Fortress',hp:280,atk:10,speed:1.2,color:0xCCDDEE,label:'Fortress',ability:'shield'};
+FERTILIZER_COMBOS[comboKey('crystal','lunar')]={name:'Moonstone',hp:190,atk:18,speed:2.0,color:0xDDCCFF,label:'Moonstone',ability:'shield,dodge'};
+// Cosmic combos
+FERTILIZER_COMBOS[comboKey('cosmic','lunar')]={name:'Supernova',hp:160,atk:22,speed:2.8,color:0xFF44FF,label:'Supernova',ability:'warp,dodge'};
+FERTILIZER_COMBOS[comboKey('cosmic','shadow')]={name:'Black Hole',hp:120,atk:26,speed:2.0,color:0x110033,label:'Black Hole',ability:'warp,lifesteal'};
+FERTILIZER_COMBOS[comboKey('cosmic','electric')]={name:'Pulsar',hp:100,atk:24,speed:3.4,color:0xCC88FF,label:'Pulsar',ability:'warp,chain'};
+// Honey combos
+FERTILIZER_COMBOS[comboKey('honey','candy')]={name:'Sugar Rush',hp:120,atk:14,speed:3.5,color:0xFFAA88,label:'Sugar Rush',ability:'sticky'};
+FERTILIZER_COMBOS[comboKey('honey','nature')]={name:'Beekeeper',hp:160,atk:12,speed:2.2,color:0xCCAA22,label:'Beekeeper',ability:'sticky,regen'};
+// Inferno combos
+FERTILIZER_COMBOS[comboKey('inferno','volcanic')]={name:'Hellfire',hp:80,atk:38,speed:2.2,color:0xFF1100,label:'Hellfire',ability:'burn'};
+FERTILIZER_COMBOS[comboKey('inferno','frost')]={name:'Frostfire',hp:100,atk:24,speed:2.4,color:0xFF88CC,label:'Frostfire',ability:'burn,slow'};
+FERTILIZER_COMBOS[comboKey('inferno','shadow')]={name:'Hellshadow',hp:90,atk:30,speed:2.8,color:0x550000,label:'Hellshadow',ability:'burn,dodge'};
+// Thunder combos
+FERTILIZER_COMBOS[comboKey('thunder','electric')]={name:'Gigavolt',hp:80,atk:28,speed:3.6,color:0xEEFF00,label:'Gigavolt',ability:'stun,chain'};
+FERTILIZER_COMBOS[comboKey('thunder','steel')]={name:'Lightning Rod',hp:200,atk:20,speed:1.8,color:0x99AACC,label:'Lightning Rod',ability:'stun,shield'};
+// Ancient combos
+FERTILIZER_COMBOS[comboKey('ancient','nature')]={name:'World Tree',hp:240,atk:12,speed:1.4,color:0x668833,label:'World Tree',ability:'lifesteal,regen'};
+FERTILIZER_COMBOS[comboKey('ancient','crystal')]={name:'Relic Guardian',hp:230,atk:18,speed:1.5,color:0xBBAA88,label:'Relic Guardian',ability:'lifesteal,shield'};
+// Candy combos
+FERTILIZER_COMBOS[comboKey('candy','cherry')]={name:'Sweet Blossom',hp:110,atk:16,speed:3.0,color:0xFF66BB,label:'Sweet Blossom',ability:null};
+FERTILIZER_COMBOS[comboKey('candy','frost')]={name:'Ice Cream',hp:130,atk:12,speed:2.6,color:0xFFCCEE,label:'Ice Cream',ability:'slow'};
+// Ocean combos
+FERTILIZER_COMBOS[comboKey('ocean','frost')]={name:'Glacier',hp:170,atk:12,speed:1.6,color:0x88EEFF,label:'Glacier',ability:'slow,regen'};
+FERTILIZER_COMBOS[comboKey('ocean','lunar')]={name:'Tidal Moon',hp:160,atk:16,speed:2.2,color:0x4466BB,label:'Tidal Moon',ability:'regen,dodge'};
+// Radioactive combos
+FERTILIZER_COMBOS[comboKey('radioactive','cosmic')]={name:'Gamma Burst',hp:90,atk:32,speed:2.8,color:0x88FF88,label:'Gamma Burst',ability:'aoe,warp'};
+FERTILIZER_COMBOS[comboKey('radioactive','electric')]={name:'Tesla Melt',hp:80,atk:28,speed:3.2,color:0xCCFF22,label:'Tesla Melt',ability:'aoe,chain'};
+// Steel combos
+FERTILIZER_COMBOS[comboKey('steel','buff')]={name:'Iron Giant',hp:250,atk:20,speed:1.3,color:0xAAAAAA,label:'Iron Giant',ability:'shield'};
+// Phantom combos
+FERTILIZER_COMBOS[comboKey('phantom','halloween')]={name:'Poltergeist',hp:100,atk:18,speed:3.2,color:0x994488,label:'Poltergeist',ability:'dodge,lifesteal'};
+FERTILIZER_COMBOS[comboKey('phantom','cosmic')]={name:'Astral Ghost',hp:120,atk:20,speed:3.0,color:0x8844CC,label:'Astral Ghost',ability:'dodge,warp'};
+// Lunar combos
+FERTILIZER_COMBOS[comboKey('lunar','nature')]={name:'Moonbloom',hp:170,atk:14,speed:2.0,color:0x99CC99,label:'Moonbloom',ability:'dodge,regen'};
+// Cherry combos
+FERTILIZER_COMBOS[comboKey('cherry','nature')]={name:'Spring Garden',hp:150,atk:14,speed:2.4,color:0xFFAACC,label:'Spring Garden',ability:'regen'};
+FERTILIZER_COMBOS[comboKey('cherry','ocean')]={name:'Coral Bloom',hp:140,atk:14,speed:2.4,color:0xFF88CC,label:'Coral Bloom',ability:'regen'};
+
+function getActiveFertConfig(){
+    if(!gs.activeFertilizer)return null;
+    if(Array.isArray(gs.activeFertilizer)){
+        const ck=comboKey(gs.activeFertilizer[0],gs.activeFertilizer[1]);
+        return FERTILIZER_COMBOS[ck]||null;
+    }
+    return FERTILIZERS[gs.activeFertilizer]||null;
+}
+
+// === STATE ===
+const gs={screen:'title',manicorns:0,nanaCoins:5,currentStage:0,treeBananas:[],growTimer:0,growInterval:6,army:[],maxArmySize:20,battleActive:false,playerUnits:[],enemyUnits:[],selectedUnit:null,battleTime:0,compostCount:0,
+    fertilizers:{plainana:0,buff:0,halloween:0,christmas:0,volcanic:0,frost:0,electric:0,shadow:0,golden:0,toxic:0,crystal:0,cosmic:0,honey:0,radioactive:0,ocean:0,cherry:0,thunder:0,ancient:0,candy:0,lunar:0,inferno:0,nature:0,steel:0,phantom:0},activeFertilizer:null,fertSelection:[]};
+
+// === THREE.JS SETUP ===
+const scene=new THREE.Scene();
+const camera=new THREE.PerspectiveCamera(50,innerWidth/innerHeight,.1,300);
+const renderer=new THREE.WebGLRenderer({antialias:!isMobile,powerPreference:'high-performance'});
+renderer.setSize(innerWidth,innerHeight);renderer.setPixelRatio(isMobile?1:Math.min(devicePixelRatio,1.5));
+renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.4;
+renderer.outputColorSpace=THREE.SRGBColorSpace;
+document.body.prepend(renderer.domElement);
+
+const composer=new EffectComposer(renderer);
+composer.addPass(new RenderPass(scene,camera));
+if(!isMobile)composer.addPass(new UnrealBloomPass(new THREE.Vector2(innerWidth,innerHeight),.35,.5,.75));
+
+// Sky
+const skyMat=new THREE.ShaderMaterial({side:THREE.BackSide,uniforms:{topColor:{value:new THREE.Color(0x5a6aaa)},midColor:{value:new THREE.Color(0xf0c878)},bottomColor:{value:new THREE.Color(0xffe0a0)},sunColor:{value:new THREE.Color(0xffeedd)},sunDir:{value:new THREE.Vector3(.25,.35,.3).normalize()}},
+vertexShader:`varying vec3 vP;void main(){vP=(modelMatrix*vec4(position,1.)).xyz;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`,
+fragmentShader:`uniform vec3 topColor,midColor,bottomColor,sunColor;uniform vec3 sunDir;varying vec3 vP;void main(){vec3 d=normalize(vP);float h=d.y;vec3 c;if(h>0.)c=mix(midColor,topColor,pow(h,.6));else c=mix(midColor,bottomColor,pow(-h,.4));float sd=max(0.,dot(d,sunDir));c+=sunColor*pow(sd,32.)*.8;c+=sunColor*pow(sd,4.)*.15;gl_FragColor=vec4(c,1.);}`});
+scene.add(new THREE.Mesh(new THREE.SphereGeometry(150,32,20),skyMat));
+scene.fog=new THREE.FogExp2(0xf0d898,isMobile?.012:.006);
+
+// Lights
+scene.add(new THREE.AmbientLight(0xffd8a0,.45));
+scene.add(new THREE.HemisphereLight(0xffd080,0x886630,.5));
+const sunLight=new THREE.DirectionalLight(0xffe0a0,1.8);
+sunLight.position.set(12,18,15);sunLight.castShadow=true;
+const sh=isMobile?1024:2048;sunLight.shadow.mapSize.set(sh,sh);
+sunLight.shadow.camera.left=-30;sunLight.shadow.camera.right=30;sunLight.shadow.camera.top=30;sunLight.shadow.camera.bottom=-30;
+sunLight.shadow.camera.near=1;sunLight.shadow.camera.far=80;sunLight.shadow.bias=-.001;sunLight.shadow.normalBias=.02;
+scene.add(sunLight);scene.add(sunLight.target);
+const fillLight=new THREE.DirectionalLight(0xffcc88,.25);fillLight.position.set(-15,10,-10);scene.add(fillLight);
+
+addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);composer.setSize(innerWidth,innerHeight)});
+
+// === GROUPS ===
+const kingdomGroup=new THREE.Group();scene.add(kingdomGroup);
+const battleGroup=new THREE.Group();battleGroup.visible=false;scene.add(battleGroup);
+
+// === MATERIALS ===
+const mat={
+trunk:new THREE.MeshStandardMaterial({map:barkTex,roughness:.95,color:0xddbb88}),
+leaf:new THREE.MeshStandardMaterial({map:leafTex,roughness:.75,color:0x6abd48,side:THREE.DoubleSide}),
+leafDark:new THREE.MeshStandardMaterial({map:leafTex,roughness:.75,color:0x4a9a35,side:THREE.DoubleSide}),
+grass:new THREE.MeshStandardMaterial({map:grassTex,roughness:.92,color:0xbbcc88}),
+dirt:new THREE.MeshStandardMaterial({map:dirtTex,roughness:.95,color:0xccbb99}),
+tomato:new THREE.MeshStandardMaterial({color:0xDD3333,roughness:.45,metalness:.05}),
+tomatoDark:new THREE.MeshStandardMaterial({color:0xAA1515,roughness:.4,metalness:.05}),
+stem:new THREE.MeshStandardMaterial({color:0x2E7D32,roughness:.65}),
+white:new THREE.MeshStandardMaterial({color:0xFFFFF0}),
+black:new THREE.MeshStandardMaterial({color:0x1a1a1a}),
+fence:new THREE.MeshStandardMaterial({color:0x9B7D5A,roughness:.9,map:barkTex}),
+compost:new THREE.MeshStandardMaterial({color:0x5D4037,roughness:.95,map:dirtTex}),
+path:new THREE.MeshStandardMaterial({map:stoneTex,roughness:.9,color:0xe0d0b8}),
+rock:new THREE.MeshStandardMaterial({map:stoneTex,roughness:.85,color:0xaaa89a}),
+wall:new THREE.MeshStandardMaterial({map:wallTex,roughness:.85,color:0xe8d8b8}),
+wallDark:new THREE.MeshStandardMaterial({map:wallTex,roughness:.85,color:0xc0aa88}),
+cobble:new THREE.MeshStandardMaterial({map:cobbleTex,roughness:.9,color:0xd8c8a8}),
+roof:new THREE.MeshStandardMaterial({map:roofTex,roughness:.8,color:0xdd7744}),
+roofDark:new THREE.MeshStandardMaterial({map:roofTex,roughness:.8,color:0xbb5533}),
+wood:new THREE.MeshStandardMaterial({map:barkTex,roughness:.85,color:0xd0b070}),
+gold:new THREE.MeshStandardMaterial({color:0xFFD700,metalness:.7,roughness:.2,emissive:0x996600,emissiveIntensity:.15}),
+water:new THREE.MeshStandardMaterial({color:0x88aacc,roughness:.1,metalness:.3,transparent:true,opacity:.75}),
+banner:new THREE.MeshStandardMaterial({color:0xFFD700,roughness:.5,side:THREE.DoubleSide,emissive:0x885500,emissiveIntensity:.1}),
+bannerRed:new THREE.MeshStandardMaterial({color:0xCC2222,roughness:.5,side:THREE.DoubleSide,emissive:0x551111,emissiveIntensity:.1}),
+};
+
+// === HELPERS ===
+function mkS(r,m,sc){const o=new THREE.Mesh(new THREE.SphereGeometry(r,24,18),m);if(sc)o.scale.set(sc[0],sc[1],sc[2]);o.castShadow=true;o.receiveShadow=true;return o}
+function mkB(w,h,d,m){const o=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),m);o.castShadow=true;o.receiveShadow=true;return o}
+function mkC(rT,rB,h,m,seg){const o=new THREE.Mesh(new THREE.CylinderGeometry(rT,rB,h,seg||20),m);o.castShadow=true;o.receiveShadow=true;return o}
+function mkCone(r,h,m){const o=new THREE.Mesh(new THREE.ConeGeometry(r,h,16),m);o.castShadow=true;o.receiveShadow=true;return o}
+function P(m,x,y,z){m.position.set(x,y,z);return m}
+
+// ===========================================================
+// KINGDOM LAYOUT
+// ===========================================================
+const W=13;
+const TREE_X=0, TREE_Z=W+8;
+
+// Outer grass terrain
+const gGeo=new THREE.PlaneGeometry(80,80,60,60);gGeo.rotateX(-Math.PI/2);
+{const pos=gGeo.attributes.position;for(let i=0;i<pos.count;i++){const x=pos.getX(i),z=pos.getZ(i);let h=Math.sin(x*.2)*Math.cos(z*.18)*.3+Math.sin(x*.5+1)*Math.cos(z*.4)*.12;const d=Math.sqrt(x*x+z*z);if(d<W+3)h*=Math.max(0,(d-W)/3);if(d>25)h+=(d-25)*.1;pos.setY(i,h)}gGeo.computeVertexNormals()}
+const ground=new THREE.Mesh(gGeo,mat.grass);ground.receiveShadow=true;kingdomGroup.add(ground);
+
+// Cobblestone courtyard
+const cGeo=new THREE.PlaneGeometry(W*2-1,W*2-1);cGeo.rotateX(-Math.PI/2);
+const court=new THREE.Mesh(cGeo,mat.cobble);court.position.y=.02;court.receiveShadow=true;kingdomGroup.add(court);
+
+// Garden bed outside gate
+const gardenRing=mkC(3.2,3.2,.4,mat.wall,24);P(gardenRing,TREE_X,.2,TREE_Z);kingdomGroup.add(gardenRing);
+const gardenDirt=new THREE.Mesh(new THREE.CircleGeometry(3,24),mat.dirt);gardenDirt.rotation.x=-Math.PI/2;P(gardenDirt,TREE_X,.41,TREE_Z);gardenDirt.receiveShadow=true;kingdomGroup.add(gardenDirt);
+
+// === CASTLE WALLS ===
+const wallH=3.5,wallT=.6,merlonH=.7;
+function buildWall(x1,z1,x2,z2){
+const dx=x2-x1,dz=z2-z1,len=Math.sqrt(dx*dx+dz*dz),a=Math.atan2(dx,dz),cx=(x1+x2)/2,cz=(z1+z2)/2;
+const w=mkB(len,wallH,wallT,mat.wall);P(w,cx,wallH/2,cz);w.rotation.y=a;kingdomGroup.add(w);
+const wk=mkB(len,.1,wallT+.3,mat.wallDark);P(wk,cx,wallH,cz);wk.rotation.y=a;kingdomGroup.add(wk);
+const n=Math.floor(len/1.2);for(let i=0;i<n;i++){if(i%2===0){const t=(i+.5)/n;const m=mkB(.5,merlonH,wallT+.1,mat.wall);P(m,x1+dx*t,wallH+merlonH/2,z1+dz*t);m.rotation.y=a;kingdomGroup.add(m)}}}
+buildWall(-W,-W,W,-W);buildWall(-W,-W,-W,W);buildWall(W,-W,W,W);
+buildWall(-W,W,-3,W);buildWall(3,W,W,W);
+
+// Gate
+const gpl=mkB(1,wallH+.5,wallT+.2,mat.wallDark);P(gpl,-3,(wallH+.5)/2,W);kingdomGroup.add(gpl);
+const gpr=mkB(1,wallH+.5,wallT+.2,mat.wallDark);P(gpr,3,(wallH+.5)/2,W);kingdomGroup.add(gpr);
+const archTop=mkB(7,1,wallT+.2,mat.wallDark);P(archTop,0,wallH,W);kingdomGroup.add(archTop);
+const archM=new THREE.Mesh(new THREE.TorusGeometry(2.5,.35,8,16,Math.PI),mat.wallDark);P(archM,0,wallH-.5,W);archM.rotation.y=Math.PI/2;archM.castShadow=true;kingdomGroup.add(archM);
+
+// Corner towers
+function buildTower(x,z){const g=new THREE.Group();
+g.add(P(mkC(1.2,1.3,wallH+2,mat.wall,12),0,(wallH+2)/2,0));
+g.add(P(mkC(1.4,1.4,.2,mat.wallDark,12),0,wallH+2,0));
+g.add(P(mkCone(1.6,2.2,mat.roof),0,wallH+3.1,0));
+g.add(P(mkC(.04,.04,1.5,mat.black),0,wallH+4.95,0));
+const b=new THREE.Mesh(new THREE.PlaneGeometry(.7,.5),mat.banner);P(b,.35,wallH+4.5,0);b.userData.isFlag=true;g.add(b);
+for(let i=0;i<3;i++){const a=(i/3)*Math.PI*2;const s=mkB(.08,.5,.2,mat.black);P(s,Math.cos(a)*1.25,wallH*.6+i*.6,Math.sin(a)*1.25);s.rotation.y=a;g.add(s)}
+g.position.set(x,0,z);return g}
+kingdomGroup.add(buildTower(-W,-W));kingdomGroup.add(buildTower(W,-W));
+kingdomGroup.add(buildTower(-W,W));kingdomGroup.add(buildTower(W,W));
+
+// === CASTLE KEEP ===
+const keep=new THREE.Group();
+keep.add(P(mkB(8,5,4,mat.wall),0,2.5,0));
+keep.add(P(mkB(8.6,.3,4.6,mat.roofDark),0,5.15,0));
+const kr=new THREE.Mesh(new THREE.CylinderGeometry(.3,4.8,2.5,4),mat.roof);kr.rotation.y=Math.PI/4;P(kr,0,6.4,0);kr.castShadow=true;keep.add(kr);
+for(let i=-1;i<=1;i++){keep.add(P(mkB(.5,.8,.1,mat.black),i*2.2,3,2.05));keep.add(P(mkB(.65,.95,.08,mat.wood),i*2.2,3,2.04));keep.add(P(mkS(.25,mat.wall,[1.3,.6,.2]),i*2.2,3.45,2.03))}
+keep.add(P(mkB(1.4,2.2,.1,mat.wood),0,1.1,2.05));keep.add(P(mkS(.7,mat.wallDark,[1,.5,.15]),0,2.25,2.03));keep.add(P(mkS(.06,mat.gold),0.35,1.1,2.12));
+for(const s of[-1,1]){keep.add(P(mkC(.7,.8,6,mat.wall,8),s*4.3,3,0));keep.add(P(mkCone(1,1.8,mat.roof),s*4.3,6.9,0));keep.add(P(mkC(.85,.85,.15,mat.wallDark,8),s*4.3,6,0))}
+const kp=mkC(.03,.03,2,mat.black);P(kp,0,5.5,2.3);keep.add(kp);
+const kb=new THREE.Mesh(new THREE.PlaneGeometry(1.2,1.5),mat.banner);P(kb,.6,5.7,2.3);kb.userData.isFlag=true;keep.add(kb);
+keep.position.set(0,0,-W+2.5);kingdomGroup.add(keep);
+
+// === BARRACKS ===
+const barr=new THREE.Group();
+barr.add(P(mkB(4,3,3,mat.wall),0,1.5,0));
+const brr=new THREE.Mesh(new THREE.CylinderGeometry(.2,2.8,1.5,4),mat.roof);brr.rotation.y=Math.PI/4;P(brr,0,3.75,0);brr.castShadow=true;barr.add(brr);
+barr.add(P(mkB(.8,1.6,.1,mat.wood),0,.8,1.55));
+for(const sx of[-1.2,1.2])barr.add(P(mkB(.4,.5,.1,mat.black),sx,1.8,1.55));
+barr.position.set(-W+3,0,2);kingdomGroup.add(barr);
+
+// === MARKET STALL ===
+const mkt=new THREE.Group();
+for(const[px,pz]of[[-1.2,-.8],[1.2,-.8],[-1.2,.8],[1.2,.8]])mkt.add(P(mkC(.06,.06,2.2,mat.wood),px,1.1,pz));
+const canopy=new THREE.Mesh(new THREE.PlaneGeometry(2.8,2),new THREE.MeshStandardMaterial({color:0xdd9922,roughness:.8,side:THREE.DoubleSide}));P(canopy,0,2.2,0);canopy.rotation.x=-Math.PI/2+.15;canopy.castShadow=true;mkt.add(canopy);
+mkt.add(P(mkB(2.6,.12,1.2,mat.wood),0,1,0));
+for(let i=0;i<3;i++)mkt.add(P(mkS(.15,mat.dirt,[1,.8,1]),-.8+i*.8,1.2,0));
+mkt.position.set(W-3.5,0,3);kingdomGroup.add(mkt);
+
+// === COTTAGE / SMALL HOUSE ===
+const cottage=new THREE.Group();
+cottage.add(P(mkB(3,2.5,2.5,mat.wall),0,1.25,0));
+const cottageRoof=new THREE.Mesh(new THREE.CylinderGeometry(.2,2.2,1.2,4),mat.roof);
+cottageRoof.rotation.y=Math.PI/4;P(cottageRoof,0,3.1,0);cottageRoof.castShadow=true;cottage.add(cottageRoof);
+cottage.add(P(mkB(.6,1.3,.08,mat.wood),0,.65,1.28));
+cottage.add(P(mkS(.04,mat.gold),.2,.65,1.34));
+cottage.add(P(mkB(.4,.4,.08,mat.black),-1,1.5,1.28));
+cottage.add(P(mkB(.4,.4,.08,mat.black),1,1.5,1.28));
+cottage.add(P(mkB(.35,1.2,.35,mat.wallDark),1.1,3.2,-.5));
+cottage.position.set(-W+4,0,-5);kingdomGroup.add(cottage);
+
+// === FOUNTAIN ===
+const ftn=new THREE.Group();
+ftn.add(P(mkC(1.2,1.3,.5,mat.wallDark,16),0,.25,0));
+const fw=new THREE.Mesh(new THREE.CircleGeometry(1.1,16),mat.water);fw.rotation.x=-Math.PI/2;P(fw,0,.48,0);fw.userData.isFountain=true;ftn.add(fw);
+ftn.add(P(mkC(.15,.2,1.2,mat.wallDark,8),0,1.1,0));
+ftn.add(P(mkC(.5,.3,.25,mat.wallDark,12),0,1.7,0));
+const fw2=new THREE.Mesh(new THREE.CircleGeometry(.4,12),mat.water);fw2.rotation.x=-Math.PI/2;P(fw2,0,1.82,0);fw2.userData.isFountain=true;ftn.add(fw2);
+const fb=mkC(.06,.08,.35,mat.gold);fb.rotation.z=.4;P(fb,0,2.05,0);ftn.add(fb);
+ftn.position.set(5,0,2);kingdomGroup.add(ftn);
+
+// === STONE WELL ===
+const well=new THREE.Group();
+well.add(P(mkC(.8,.85,.6,mat.rock,10),0,.3,0));
+well.add(P(mkC(.9,.9,.08,mat.wallDark,10),0,.6,0));
+const wellWater=new THREE.Mesh(new THREE.CircleGeometry(.7,10),mat.water);wellWater.rotation.x=-Math.PI/2;P(wellWater,0,.55,0);wellWater.userData.isFountain=true;well.add(wellWater);
+for(const sx of[-.5,.5]){well.add(P(mkC(.04,.04,1.6,mat.wood),sx,.6+.8,sx*.3))}
+const wellRoof=mkB(1.4,.08,1,mat.wood);P(wellRoof,0,2.1,0);wellRoof.rotation.z=.15;well.add(wellRoof);
+well.add(P(mkC(.1,.08,.15,mat.wallDark,8),0,1.3,.3));
+well.position.set(W-3,0,-4);kingdomGroup.add(well);
+
+// === DECORATIVE FLAGS ON POSTS ===
+function placeFlag(x,z,flagMat){
+    const g=new THREE.Group();
+    g.add(P(mkC(.03,.03,2.5,mat.wood),0,1.25,0));
+    const fl=new THREE.Mesh(new THREE.PlaneGeometry(.6,.4),flagMat);
+    P(fl,.3,2.3,0);fl.userData.isFlag=true;g.add(fl);
+    g.position.set(x,0,z);return g;
+}
+kingdomGroup.add(placeFlag(-6,W-1.5,mat.banner));
+kingdomGroup.add(placeFlag(6,W-1.5,mat.bannerRed));
+kingdomGroup.add(placeFlag(-2,-W+5,mat.banner));
+kingdomGroup.add(placeFlag(2,-W+5,mat.bannerRed));
+
+// Paths
+function layPath(x1,z1,x2,z2,w){const dx=x2-x1,dz=z2-z1,len=Math.sqrt(dx*dx+dz*dz),a=Math.atan2(dx,dz);const p=new THREE.Mesh(new THREE.PlaneGeometry(w,len),mat.path);p.rotation.x=-Math.PI/2;p.rotation.z=-a;p.position.set((x1+x2)/2,.03,(z1+z2)/2);p.receiveShadow=true;kingdomGroup.add(p)}
+layPath(0,W,0,TREE_Z-3.5,2.5);
+layPath(0,W-2,0,-W+4.5,2);
+layPath(-3,0,-W+3,2,1.2);
+layPath(3,1,W-3.5,3,1.2);
+layPath(3,-2,W-3,-4,1);
+
+// Torches
+const torchMat=new THREE.MeshStandardMaterial({color:0xffaa22,emissive:0xffaa00,emissiveIntensity:1,roughness:.2});
+function placeTorch(x,y,z){kingdomGroup.add(P(mkB(.06,.3,.06,mat.black),x,y,z));const f=mkS(.08,torchMat);P(f,x,y+.2,z);f.userData.isTorch=true;kingdomGroup.add(f);const l=new THREE.PointLight(0xffbb55,.8,7);l.position.set(x,y+.3,z);kingdomGroup.add(l)}
+placeTorch(-W+.5,2.5,-6);placeTorch(W-.5,2.5,-6);placeTorch(-W+.5,2.5,4);placeTorch(W-.5,2.5,4);
+placeTorch(-3.3,2.5,W-.1);placeTorch(3.3,2.5,W-.1);
+
+// === DECORATIONS ===
+function createBush(x,z,s){const g=new THREE.Group();for(let i=0;i<4;i++){const r=(.3+Math.random()*.3)*s;const b=mkS(r,Math.random()>.4?mat.leaf:mat.leafDark);P(b,(Math.random()-.5)*.4*s,r*.7,(Math.random()-.5)*.4*s);g.add(b)}g.position.set(x,0,z);return g}
+function createFlower(x,z){const g=new THREE.Group();const h=.3+Math.random()*.3;g.add(P(mkC(.015,.015,h,mat.stem),0,h/2,0));const cols=[0xff6b9d,0xffd93d,0xff8c42,0xc084fc,0xfb7185];const pm=new THREE.MeshStandardMaterial({color:cols[Math.floor(Math.random()*5)],roughness:.5});for(let i=0;i<5;i++){const a=(i/5)*Math.PI*2;const p=mkS(.04,pm,[1,.3,2]);p.position.set(Math.cos(a)*.04,h+.02,Math.sin(a)*.04);p.rotation.y=a;g.add(p)}g.add(P(mkS(.025,new THREE.MeshStandardMaterial({color:0xffee00,roughness:.4})),0,h+.02,0));g.position.set(x,0,z);return g}
+function createRock(x,z,s){const g=new THREE.DodecahedronGeometry(s,0);const pos=g.attributes.position;for(let i=0;i<pos.count;i++){pos.setX(i,pos.getX(i)*(.8+Math.random()*.4));pos.setY(i,pos.getY(i)*(.6+Math.random()*.3));pos.setZ(i,pos.getZ(i)*(.8+Math.random()*.4))}g.computeVertexNormals();const r=new THREE.Mesh(g,mat.rock);r.position.set(x,s*.3,z);r.rotation.set(Math.random(),Math.random(),0);r.castShadow=true;r.receiveShadow=true;return r}
+function createGrassTuft(x,z){const g=new THREE.Group();const gm=new THREE.MeshStandardMaterial({color:0x4a9030,roughness:.8,side:THREE.DoubleSide});for(let i=0;i<7;i++){const h=.2+Math.random()*.3;const b=new THREE.Mesh(new THREE.PlaneGeometry(.04,h),gm);b.position.set((Math.random()-.5)*.15,h/2,(Math.random()-.5)*.15);b.rotation.y=Math.random()*Math.PI;b.rotation.z=(Math.random()-.5)*.3;g.add(b)}g.position.set(x,0,z);return g}
+
+// Flowers around tree garden
+for(let i=0;i<16;i++){const a=(i/16)*Math.PI*2,r=3.3+Math.random()*.5;kingdomGroup.add(createFlower(TREE_X+Math.cos(a)*r,TREE_Z+Math.sin(a)*r))}
+// Bushes
+kingdomGroup.add(createBush(-W+2,-W+2,1));kingdomGroup.add(createBush(W-2,-W+2,.9));
+kingdomGroup.add(createBush(-W+2,6,.8));kingdomGroup.add(createBush(W-2,6,1));
+kingdomGroup.add(createBush(-5,W-2,.7));kingdomGroup.add(createBush(5,W-2,.7));
+// Grass tufts outside walls
+for(let i=0;i<50;i++){const a=Math.random()*Math.PI*2,d=W+2+Math.random()*10;kingdomGroup.add(createGrassTuft(Math.cos(a)*d,Math.sin(a)*d))}
+// Trees outside walls
+for(let i=0;i<10;i++){const a=Math.random()*Math.PI*2,d=W+4+Math.random()*8;const tg=new THREE.Group();const th=2.5+Math.random()*2;tg.add(P(mkC(.12,.16,th,mat.trunk),0,th/2,0));tg.add(P(mkS(1+Math.random()*.5,mat.leaf,[1,.7,1]),0,th+.2,0));tg.position.set(Math.cos(a)*d,0,Math.sin(a)*d);kingdomGroup.add(tg)}
+// Rocks
+for(let i=0;i<6;i++){const a=Math.random()*Math.PI*2,d=W+2+Math.random()*6;kingdomGroup.add(createRock(Math.cos(a)*d,Math.sin(a)*d,.2+Math.random()*.3))}
+// Compost bin
+const cBin=new THREE.Group();const bandM=new THREE.MeshStandardMaterial({color:0x555555,metalness:.6,roughness:.4});
+for(let i=0;i<8;i++){const a=(i/8)*Math.PI*2;const pl=mkB(.05,.8,.35,mat.fence);pl.position.set(Math.cos(a)*.42,.4,Math.sin(a)*.42);pl.rotation.y=a;cBin.add(pl)}
+cBin.add(P(mkC(.48,.48,.04,bandM,16),0,.2,0));cBin.add(P(mkC(.45,.45,.04,bandM,16),0,.6,0));
+const dt=new THREE.Mesh(new THREE.CircleGeometry(.4,16),mat.dirt);dt.rotation.x=-Math.PI/2;P(dt,0,.79,0);cBin.add(dt);
+cBin.position.set(W-2,0,W-2);kingdomGroup.add(cBin);
+
+// Ambient particles
+const ambientParticles=[];
+const apMat=new THREE.MeshBasicMaterial({color:0xffdd88,transparent:true,opacity:.5});
+for(let i=0;i<30;i++){const p=new THREE.Mesh(new THREE.SphereGeometry(.02,4,4),apMat);p.position.set((Math.random()-.5)*20,1+Math.random()*5,TREE_Z+(Math.random()-.5)*16);p.userData.baseY=p.position.y;p.userData.speed=.2+Math.random()*.3;p.userData.phase=Math.random()*Math.PI*2;p.userData.drift=(Math.random()-.5)*.5;kingdomGroup.add(p);ambientParticles.push(p)}
+
+// Clouds
+const cloudGroup=new THREE.Group();scene.add(cloudGroup);
+const cloudMat=new THREE.MeshStandardMaterial({color:0xffeedd,roughness:1,transparent:true,opacity:.65});
+for(let i=0;i<8;i++){const g=new THREE.Group();for(let j=0;j<5;j++){const pf=mkS(1.5+Math.random()*2,cloudMat,[1,.4+Math.random()*.2,1]);pf.position.set((Math.random()-.5)*4,(Math.random()-.5)*.5,(Math.random()-.5)*3);pf.castShadow=false;pf.receiveShadow=false;g.add(pf)}g.position.set((Math.random()-.5)*120,25+Math.random()*15,-30-Math.random()*40);g.userData.speed=.3+Math.random()*.4;cloudGroup.add(g)}
+
+// ===========================================================
+// BANANA TREE (outside the gate)
+// ===========================================================
+const dirtPatch=new THREE.Mesh(new THREE.CircleGeometry(3,24),mat.dirt);dirtPatch.rotation.x=-Math.PI/2;P(dirtPatch,TREE_X,.42,TREE_Z);dirtPatch.receiveShadow=true;kingdomGroup.add(dirtPatch);
+
+const bananaTree=new THREE.Group();
+bananaTree.position.set(TREE_X,0,TREE_Z);
+kingdomGroup.add(bananaTree);
+
+const trunkSegs=8;
+for(let i=0;i<trunkSegs;i++){const t=i/trunkSegs;const rB=.5*(1-t*.45),rT=.5*(1-(t+1/trunkSegs)*.45),sH=.7;const seg=mkC(rT,rB,sH,mat.trunk);const cv=Math.sin(t*Math.PI*.4)*.15;P(seg,cv,sH/2+i*sH,0);seg.rotation.z=t*.03;bananaTree.add(seg);if(i>0&&i<trunkSegs-1){const ring=mkC(rB+.02,rB+.02,.04,new THREE.MeshStandardMaterial({color:0x6a4a25,roughness:.95}));P(ring,cv,i*sH,0);bananaTree.add(ring)}}
+for(let i=0;i<5;i++){const a=(i/5)*Math.PI*2+Math.random()*.5;const rt=mkS(.2,mat.trunk,[1,.4,2]);rt.position.set(Math.cos(a)*.5,.1,Math.sin(a)*.5);rt.rotation.y=a;bananaTree.add(rt)}
+
+// Palm fronds
+function createFrond(angle,length,droop){const fg=new THREE.Group();const lm=Math.random()>.4?mat.leaf:mat.leafDark;
+const ribC=new THREE.CatmullRomCurve3([new THREE.Vector3(0,0,0),new THREE.Vector3(0,-droop*.2,length*.3),new THREE.Vector3(0,-droop*.6,length*.65),new THREE.Vector3(0,-droop*1.2,length)]);
+const rib=new THREE.Mesh(new THREE.TubeGeometry(ribC,12,.03,6,false),new THREE.MeshStandardMaterial({color:0x4a8830,roughness:.7}));rib.castShadow=true;fg.add(rib);
+for(let i=1;i<10;i++){const t=i/10;const pt=ribC.getPointAt(t);const w=.35*(1-Math.abs(t-.4))*(1+Math.random()*.2);const bg=new THREE.PlaneGeometry(w,length/10*1.1);
+const bl=new THREE.Mesh(bg,lm);bl.position.copy(pt).add(new THREE.Vector3(-w*.45,0,0));bl.rotation.z=.3+t*.4;bl.rotation.y=-.1;bl.castShadow=true;bl.receiveShadow=true;fg.add(bl);
+const br=new THREE.Mesh(bg,lm);br.position.copy(pt).add(new THREE.Vector3(w*.45,0,0));br.rotation.z=-(.3+t*.4);br.rotation.y=.1;br.castShadow=true;br.receiveShadow=true;fg.add(br)}
+fg.rotation.y=angle;fg.position.set(.05,trunkSegs*.7,0);return fg}
+for(let i=0;i<9;i++)bananaTree.add(createFrond((i/9)*Math.PI*2+Math.random()*.2,2.5+Math.random(),0.5+Math.random()*.8));
+
+const bunchGroup=new THREE.Group();bunchGroup.position.set(0,trunkSegs*.7-.3,0);bananaTree.add(bunchGroup);
+bunchGroup.add(P(mkC(.06,.04,.5,new THREE.MeshStandardMaterial({color:0x5a7a30,roughness:.7})),0,-.25,0));
+
+// ===========================================================
+// BATTLE SCENE
+// ===========================================================
+const bGnd=new THREE.Mesh(new THREE.PlaneGeometry(50,25,40,20),new THREE.MeshStandardMaterial({map:battleGrassTex,roughness:.92}));
+bGnd.geometry.rotateX(-Math.PI/2);{const pos=bGnd.geometry.attributes.position;for(let i=0;i<pos.count;i++)pos.setY(i,Math.sin(pos.getX(i)*.2)*Math.cos(pos.getZ(i)*.3)*.15);bGnd.geometry.computeVertexNormals()}
+bGnd.receiveShadow=true;battleGroup.add(bGnd);
+for(let i=0;i<8;i++){const tg=new THREE.Group();const th=3+Math.random()*2;tg.add(P(mkC(.15,.2,th,mat.trunk),0,th/2,0));tg.add(P(mkS(1.2+Math.random()*.5,mat.leaf,[1,.7,1]),0,th+.3,0));tg.position.set(-20+i*5.5+Math.random()*2,0,-10-Math.random()*3);battleGroup.add(tg)}
+for(let i=0;i<5;i++){const h=mkS(4+Math.random()*2,mat.grass,[1,.3,1]);P(h,-18+i*9,-1,-12-Math.random()*3);h.receiveShadow=true;battleGroup.add(h)}
+
+// ===========================================================
+// BANANA MODELS
+// ===========================================================
+function createTreeBanana(){const g=new THREE.Group();const bm=new THREE.MeshStandardMaterial({color:0x7CCC47,roughness:.5,metalness:.02});g.userData.bananaMat=bm;
+const pts=[];for(let i=0;i<=12;i++){const t=i/12;pts.push(new THREE.Vector2(Math.max(.012,.15*Math.sin(t*Math.PI)*(.7+.3*Math.sin(t*Math.PI))),t*1-.5))}
+const body=new THREE.Mesh(new THREE.LatheGeometry(pts,8),bm);body.rotation.z=.4;body.castShadow=true;g.add(body);
+g.add(P(mkS(.06,bm),-.17,-.5,0));
+g.add(P(mkC(.035,.03,.18,new THREE.MeshStandardMaterial({color:0x5a4020,roughness:.9})),.1,.55,0));
+return g}
+
+function createBananaSoldier(stats){const g=new THREE.Group();const bc=stats.color||0xFFD700;
+const bm=new THREE.MeshStandardMaterial({color:bc,roughness:.45,metalness:.02});
+const pts=[];for(let i=0;i<=16;i++){const t=i/16;let r=.2*Math.sin(t*Math.PI);r*=.6+.4*Math.sin(t*Math.PI*.8);pts.push(new THREE.Vector2(Math.max(.02,r),t*.8-.1))}
+const body=new THREE.Mesh(new THREE.LatheGeometry(pts,12),bm);P(body,0,.55,0);body.castShadow=true;body.receiveShadow=true;g.add(body);
+g.add(P(mkS(.04,new THREE.MeshStandardMaterial({color:0x5a4020,roughness:.7})),0,.3,0));
+g.add(P(mkS(.07,mat.white),-.08,.78,.15));g.add(P(mkS(.07,mat.white),.08,.78,.15));
+const im=new THREE.MeshStandardMaterial({color:0x3a2a15,roughness:.3});
+g.add(P(mkS(.04,im),-.08,.78,.21));g.add(P(mkS(.04,im),.08,.78,.21));
+const hm=new THREE.MeshBasicMaterial({color:0xffffff});
+g.add(P(mkS(.015,hm),-.06,.8,.22));g.add(P(mkS(.015,hm),.1,.8,.22));
+g.add(P(mkS(.03,mat.black,[1.8,.5,1]),0,.66,.17));
+const am=new THREE.MeshStandardMaterial({color:new THREE.Color(bc).multiplyScalar(.82),roughness:.5});
+const la=mkC(.035,.03,.25,am);P(la,-.22,.6,0);la.rotation.z=.5;g.add(la);g.userData.leftArm=la;
+g.add(P(mkS(.035,am),-.3,.5,0));
+const ra=mkC(.035,.03,.25,am);P(ra,.22,.6,0);ra.rotation.z=-.5;g.add(ra);g.userData.rightArm=ra;
+g.add(P(mkS(.035,am),.3,.5,0));
+const ll=mkC(.04,.04,.2,am);P(ll,-.08,.18,0);g.add(ll);g.userData.leftLeg=ll;
+g.add(P(mkS(.05,am,[1,.4,1.5]),-.08,.06,.02));
+const rl=mkC(.04,.04,.2,am);P(rl,.08,.18,0);g.add(rl);g.userData.rightLeg=rl;
+g.add(P(mkS(.05,am,[1,.4,1.5]),.08,.06,.02));
+const hpG=new THREE.Group();hpG.add(mkB(.6,.06,.02,new THREE.MeshBasicMaterial({color:0x222222})));
+const hpF=mkB(.56,.04,.025,new THREE.MeshBasicMaterial({color:0x44FF44}));hpG.add(hpF);hpG.position.set(0,1.2,0);g.add(hpG);
+g.userData.hpFill=hpF;
+
+// Fertilizer visual extras
+if(stats.fertType==='plainana'||(stats.speed&&stats.speed>=3.0)){
+    const wingMat=new THREE.MeshStandardMaterial({color:0xaaddff,transparent:true,opacity:0.6,side:THREE.DoubleSide});
+    const wingL=new THREE.Mesh(new THREE.PlaneGeometry(0.2,0.12),wingMat);
+    P(wingL,-0.25,0.85,-0.05);wingL.rotation.y=-0.5;g.add(wingL);
+    const wingR=new THREE.Mesh(new THREE.PlaneGeometry(0.2,0.12),wingMat);
+    P(wingR,0.25,0.85,-0.05);wingR.rotation.y=0.5;g.add(wingR);
+    g.userData.wings=[wingL,wingR];
+}
+if(stats.fertType==='buff'||(stats.fertType==='combo'&&stats.hp>130)){
+    g.scale.setScalar(1.35);
+}
+if(stats.ability&&stats.ability.includes('lifesteal')){
+    const glowMat=new THREE.MeshBasicMaterial({color:0x9933CC,transparent:true,opacity:0.15});
+    const glow=mkS(0.35,glowMat);
+    P(glow,0,0.7,0);g.add(glow);
+    g.userData.glowOrb=glow;
+}
+if(stats.ability&&stats.ability.includes('regen')){
+    const regenMat=new THREE.MeshBasicMaterial({color:0x44ff44,transparent:true,opacity:0.12});
+    const regen=mkS(0.32,regenMat);
+    P(regen,0,0.7,0);g.add(regen);
+    g.userData.regenOrb=regen;
+}
+
+g.userData.stats={...stats};g.userData.hp=stats.hp;g.userData.maxHp=stats.hp;
+g.userData.walkPhase=Math.random()*Math.PI*2;g.userData.attackCooldown=0;g.userData.type='banana';
+g.userData.ability=stats.ability||null;return g}
+
+function createTomatoEnemy(stats){const g=new THREE.Group();const s=stats.scale||1;
+const tm=stats.boss?new THREE.MeshStandardMaterial({color:0x991111,roughness:.35,metalness:.05}):new THREE.MeshStandardMaterial({color:0xDD3333,roughness:.4,metalness:.05});
+const bg=new THREE.SphereGeometry(.38*s,24,18);const bp=bg.attributes.position;
+for(let i=0;i<bp.count;i++){bp.setY(i,bp.getY(i)*.85);const a=Math.atan2(bp.getZ(i),bp.getX(i));const cr=Math.sin(a*6)*.015*s;bp.setX(i,bp.getX(i)+Math.cos(a)*cr);bp.setZ(i,bp.getZ(i)+Math.sin(a)*cr)}bg.computeVertexNormals();
+const body=new THREE.Mesh(bg,tm);P(body,0,.42*s,0);body.castShadow=true;body.receiveShadow=true;g.add(body);
+const stG=new THREE.Group();stG.add(P(mkC(.04*s,.06*s,.12*s,new THREE.MeshStandardMaterial({color:0x2a6a20,roughness:.6})),0,.08*s,0));
+for(let i=0;i<5;i++){const a=(i/5)*Math.PI*2;const lf=new THREE.Mesh(new THREE.PlaneGeometry(.06*s,.18*s),new THREE.MeshStandardMaterial({color:0x2d7d2d,roughness:.6,side:THREE.DoubleSide}));lf.position.set(Math.cos(a)*.05*s,0,Math.sin(a)*.05*s);lf.rotation.y=a;lf.rotation.x=-.7;lf.castShadow=true;stG.add(lf)}
+stG.position.set(0,.42*s+.28*s,0);g.add(stG);
+g.add(P(mkS(.08*s,mat.white),-.12*s,.5*s,.28*s));g.add(P(mkS(.08*s,mat.white),.12*s,.5*s,.28*s));
+g.add(P(mkS(.045*s,mat.black),-.12*s,.52*s,.34*s));g.add(P(mkS(.045*s,mat.black),.12*s,.52*s,.34*s));
+const bwM=new THREE.MeshStandardMaterial({color:0x2a2a2a,roughness:.8});
+const bl=mkB(.13*s,.03,.03,bwM);P(bl,-.12*s,.6*s,.33*s);bl.rotation.z=.45;g.add(bl);
+const br=mkB(.13*s,.03,.03,bwM);P(br,.12*s,.6*s,.33*s);br.rotation.z=-.45;g.add(br);
+const mo=new THREE.Mesh(new THREE.TorusGeometry(.06*s,.015,8,12,Math.PI),mat.black);P(mo,0,.34*s,.32*s);mo.rotation.x=-.2;g.add(mo);
+const fm=new THREE.MeshStandardMaterial({color:0xaa2525,roughness:.5});
+const lf=mkS(.08*s,fm,[1.2,.4,1.5]);P(lf,-.14*s,.04,.04);g.add(lf);
+const rf=mkS(.08*s,fm,[1.2,.4,1.5]);P(rf,.14*s,.04,.04);g.add(rf);
+g.userData.leftLeg=lf;g.userData.rightLeg=rf;
+const hpG=new THREE.Group();hpG.add(mkB(.6*s,.06,.02,new THREE.MeshBasicMaterial({color:0x222222})));
+const hpF=mkB(.56*s,.04,.025,new THREE.MeshBasicMaterial({color:0xFF4444}));hpG.add(hpF);
+hpG.position.set(0,(.42*s+.55*s)+.35,0);g.add(hpG);
+g.userData.hpFill=hpF;g.userData.stats={...stats};g.userData.hp=stats.hp;g.userData.maxHp=stats.hp;
+g.userData.walkPhase=Math.random()*Math.PI*2;g.userData.attackCooldown=0;g.userData.type='tomato';return g}
+
+// ===========================================================
+// RAYCASTING
+// ===========================================================
+const raycaster=new THREE.Raycaster(),mouse=new THREE.Vector2();
+function getClickedBanana(e){const x=e.clientX??e.touches?.[0]?.clientX,y=e.clientY??e.touches?.[0]?.clientY;if(x==null)return null;mouse.x=(x/innerWidth)*2-1;mouse.y=-(y/innerHeight)*2+1;raycaster.setFromCamera(mouse,camera);for(const tb of gs.treeBananas)if(raycaster.intersectObject(tb.mesh,true).length>0)return tb;return null}
+function getClickedBattleUnit(e){const x=e.clientX??e.touches?.[0]?.clientX,y=e.clientY??e.touches?.[0]?.clientY;if(x==null)return null;mouse.x=(x/innerWidth)*2-1;mouse.y=-(y/innerHeight)*2+1;raycaster.setFromCamera(mouse,camera);for(const u of gs.playerUnits)if(raycaster.intersectObject(u,true).length>0)return u;return null}
+
+// ===========================================================
+// TREE BANANA SYSTEM
+// ===========================================================
+function spawnTreeBanana(){const used=gs.treeBananas.map(b=>b.slotIdx),avail=[];for(let i=0;i<BANANA_SLOTS.length;i++)if(!used.includes(i))avail.push(i);if(!avail.length)return;const si=avail[Math.floor(Math.random()*avail.length)];const m=createTreeBanana();m.position.copy(BANANA_SLOTS[si]);m.scale.set(.1,.1,.1);bananaTree.add(m);gs.treeBananas.push({mesh:m,slotIdx:si,timer:0,spawning:true,spawnProgress:0})}
+function getRipeness(t){if(t<RIPENESS.GREEN.max)return RIPENESS.GREEN;if(t<RIPENESS.YELLOW.max)return RIPENESS.YELLOW;if(t<RIPENESS.BROWN.max)return RIPENESS.BROWN;return null}
+function getRipenessColor(t){if(t<3)return new THREE.Color(0x7CCC47).lerp(new THREE.Color(0xCCCC00),t/3);if(t<6)return new THREE.Color(0xFFD700).lerp(new THREE.Color(0xFFAA00),(t-3)/3);if(t<9)return new THREE.Color(0xBB8800).lerp(new THREE.Color(0x6B4010),(t-6)/3);return new THREE.Color(0x4A3010)}
+
+function updateTree(dt){gs.growTimer+=dt;if(gs.growTimer>=gs.growInterval&&gs.treeBananas.length<BANANA_SLOTS.length){gs.growTimer=0;spawnTreeBanana()}
+for(let i=gs.treeBananas.length-1;i>=0;i--){const b=gs.treeBananas[i];
+if(b.spawning){b.spawnProgress+=dt*2;const s=Math.min(b.spawnProgress,1);b.mesh.scale.setScalar(1-Math.pow(1-s,3));if(s>=1)b.spawning=false;continue}
+b.timer+=dt;b.mesh.userData.bananaMat.color.copy(getRipenessColor(b.timer));
+if(b.timer>=RIPENESS.YELLOW.min&&b.timer<RIPENESS.YELLOW.max){b.mesh.scale.setScalar(1+Math.sin(b.timer*8)*.06);b.mesh.userData.bananaMat.emissive.set(0x443300);b.mesh.userData.bananaMat.emissiveIntensity=.25+Math.sin(b.timer*6)*.12}else{b.mesh.userData.bananaMat.emissive.set(0);b.mesh.userData.bananaMat.emissiveIntensity=0}
+if(b.timer>=10){b.mesh.position.y-=dt*3;b.mesh.rotation.x+=dt*4;if(b.mesh.position.y<-1){bananaTree.remove(b.mesh);gs.treeBananas.splice(i,1)}}}}
+
+// ===========================================================
+// HARVEST SYSTEM (with fertilizer support)
+// ===========================================================
+function harvestBanana(banana){const rp=getRipeness(banana.timer);if(!rp)return;if(gs.army.length>=gs.maxArmySize){showNotification('Army full! (max '+gs.maxArmySize+')');return}
+const fertConfig=getActiveFertConfig();
+let stats;
+if(fertConfig){
+    const q=rp.quality;
+    stats={
+        hp:Math.round(fertConfig.hp*q),maxHp:Math.round(fertConfig.hp*q),
+        atk:Math.round(fertConfig.atk*q),speed:fertConfig.speed,
+        color:fertConfig.color,color2:fertConfig.color2||null,
+        label:(rp.label==='Perfect'?'':rp.label+' ')+fertConfig.label,
+        quality:q,fertType:Array.isArray(gs.activeFertilizer)?'combo':gs.activeFertilizer,
+        ability:fertConfig.ability,
+    };
+}else{
+    stats={
+        hp:rp.hp,maxHp:rp.hp,atk:rp.atk,
+        speed:2+rp.quality*.5,color:rp.color,
+        label:rp.label,quality:rp.quality,
+        fertType:null,ability:null,
+    };
+}
+gs.army.push(stats);const sp=banana.mesh.getWorldPosition(new THREE.Vector3()).project(camera);
+showHarvestPopup((sp.x*.5+.5)*innerWidth,(-sp.y*.5+.5)*innerHeight,stats);
+bananaTree.remove(banana.mesh);const idx=gs.treeBananas.indexOf(banana);if(idx>-1)gs.treeBananas.splice(idx,1);
+updateArmyUI();updateBattleBtn();
+const abilStr=stats.ability?' ['+stats.ability+']':'';
+showNotification(stats.label+' banana harvested! ('+stats.hp+' HP, '+stats.atk+' ATK'+abilStr+')')}
+
+// ===========================================================
+// BATTLE SYSTEM
+// ===========================================================
+function startBattle(){if(!gs.army.length)return;const stage=STAGES[gs.currentStage];if(!stage)return;
+gs.screen='battle';gs.battleActive=true;gs.battleTime=0;gs.selectedUnit=null;gs.playerUnits=[];gs.enemyUnits=[];
+kingdomGroup.visible=false;battleGroup.visible=true;
+gs.army.forEach((s,i)=>{const sol=createBananaSoldier({hp:s.hp,atk:s.atk,speed:s.speed,color:s.color,color2:s.color2,fertType:s.fertType,ability:s.ability});sol.userData.armyIndex=i;const sp=gs.army.length>1?(i/(gs.army.length-1))*6-3:0;sol.position.set(-12,0,sp);sol.rotation.y=Math.PI/2;battleGroup.add(sol);gs.playerUnits.push(sol)});
+stage.enemies.forEach((es,i)=>{const en=createTomatoEnemy(es);const sp=stage.enemies.length>1?(i/(stage.enemies.length-1))*6-3:0;en.position.set(12,0,sp);en.rotation.y=-Math.PI/2;battleGroup.add(en);gs.enemyUnits.push(en)});
+$('hud').style.display='block';$('army-panel').style.display='none';$('battle-btn').style.display='none';$('hint-text').style.display='none';$('compost-bar').style.display='none';$('fert-panel').style.display='none';$('active-fert-indicator').style.display='none';$('save-btns').style.display='none';$('battle-hud').style.display='block';setCamPreset('default',true);updateBattleHUD()}
+
+function $(id){return document.getElementById(id)}
+
+function updateBattle(dt){if(!gs.battleActive)return;gs.battleTime+=dt;
+for(const u of[...gs.playerUnits,...gs.enemyUnits]){if(u.userData.hp<=0)continue;
+const isP=u.userData.type==='banana';const enemies=(isP?gs.enemyUnits:gs.playerUnits).filter(e=>e.userData.hp>0);if(!enemies.length)continue;
+let near=null,nd=Infinity;for(const e of enemies){const d=u.position.distanceTo(e.position);if(d<nd){nd=d;near=e}}
+u.userData.attackCooldown-=dt;
+if(nd<=1.2){if(u.userData.attackCooldown<=0){
+let dmg=u.userData.stats.atk;
+const ab=u.userData.ability||'';
+// Dodge — 25% chance to completely avoid damage (for the target)
+if(near.userData.ability&&near.userData.ability.includes('dodge')&&Math.random()<0.25){
+    spawnHitParticles(near.position,0xBB88FF);u.userData.attackCooldown=.8;
+}else{
+// Shield — reduce incoming damage by 30%
+if(near.userData.ability&&near.userData.ability.includes('shield'))dmg=Math.round(dmg*0.7);
+near.userData.hp-=dmg;u.userData.attackCooldown=.8;if(u.userData.rightArm)u.userData.rightArm.rotation.x=-1.2;flashUnit(near);updateHPBar(near);spawnHitParticles(near.position,isP?0xDD3333:0xFFD700);
+// Lifesteal — heal 25% of damage dealt
+if(ab.includes('lifesteal')){u.userData.hp=Math.min(u.userData.maxHp,u.userData.hp+Math.round(dmg*0.25));updateHPBar(u)}
+// Burn — extra 20% fire damage over time
+if(ab.includes('burn')){near.userData.burnTimer=(near.userData.burnTimer||0)+2.0}
+// Poison — extra damage-over-time for 3 seconds
+if(ab.includes('poison')){near.userData.poisonTimer=(near.userData.poisonTimer||0)+3.0}
+// Slow — reduce target speed for 2 seconds
+if(ab.includes('slow')){near.userData.slowTimer=2.0}
+// Stun — freeze target for 0.6 seconds
+if(ab.includes('stun')&&Math.random()<0.3){near.userData.stunTimer=0.6;spawnHitParticles(near.position,0xFFFF00)}
+// Chain — hit a second nearby enemy for 40% damage
+if(ab.includes('chain')){const others=(isP?gs.enemyUnits:gs.playerUnits).filter(e=>e.userData.hp>0&&e!==near&&e.position.distanceTo(near.position)<3);
+if(others.length){const t2=others[Math.floor(Math.random()*others.length)];t2.userData.hp-=Math.round(dmg*0.4);updateHPBar(t2);spawnHitParticles(t2.position,0xFFFF00)}}
+// AoE — splash 30% damage to all enemies within range 2.5
+if(ab.includes('aoe')){const splash=(isP?gs.enemyUnits:gs.playerUnits).filter(e=>e.userData.hp>0&&e!==near&&e.position.distanceTo(near.position)<2.5);
+for(const s of splash){s.userData.hp-=Math.round(dmg*0.3);updateHPBar(s);spawnHitParticles(s.position,0x33FF33)}}
+// Sticky — slow ALL nearby enemies for 1s on hit
+if(ab.includes('sticky')){const stuck=(isP?gs.enemyUnits:gs.playerUnits).filter(e=>e.userData.hp>0&&e.position.distanceTo(u.position)<3);
+for(const s of stuck)s.userData.slowTimer=Math.max(s.userData.slowTimer||0,1.0)}
+}
+// Warp — 20% chance to teleport behind a random enemy after attacking
+if(ab.includes('warp')&&Math.random()<0.2){const re=(isP?gs.enemyUnits:gs.playerUnits).filter(e=>e.userData.hp>0);
+if(re.length){const wt=re[Math.floor(Math.random()*re.length)];u.position.set(wt.position.x+(isP?-1.5:1.5),0,wt.position.z);spawnHitParticles(u.position,0xFF00FF)}}
+}}else{
+// Movement — check for stun
+if(u.userData.stunTimer&&u.userData.stunTimer>0){/* stunned, can't move */}else{
+const dir=new THREE.Vector3().subVectors(near.position,u.position).normalize();
+let spd=u.userData.stats.speed||2;
+if(u.userData.slowTimer&&u.userData.slowTimer>0)spd*=0.5; // slowed
+u.position.x+=dir.x*spd*dt;u.position.z+=dir.z*spd*dt;u.rotation.y=Math.atan2(dir.x,dir.z)}}
+// Tick timers
+if(u.userData.stunTimer>0){u.userData.stunTimer-=dt;u.userData.attackCooldown=Math.max(u.userData.attackCooldown,0.1)}
+if(u.userData.slowTimer>0)u.userData.slowTimer-=dt;
+if(u.userData.burnTimer>0){u.userData.hp-=6*dt;u.userData.burnTimer-=dt;updateHPBar(u)}
+if(u.userData.poisonTimer>0){u.userData.hp-=4*dt;u.userData.poisonTimer-=dt;updateHPBar(u)}
+u.userData.walkPhase+=dt*8;const sw=Math.sin(u.userData.walkPhase);
+if(u.userData.leftLeg)u.userData.leftLeg.rotation.x=sw*.4;if(u.userData.rightLeg)u.userData.rightLeg.rotation.x=-sw*.4;
+if(u.userData.rightArm&&u.userData.attackCooldown<.5)u.userData.rightArm.rotation.x*=.9;
+u.position.y=Math.abs(Math.sin(u.userData.walkPhase))*.04;if(u.userData.hpFill)u.userData.hpFill.parent.lookAt(camera.position);
+// Regen ability
+if(u.userData.ability&&u.userData.ability.includes('regen')){u.userData.hp=Math.min(u.userData.maxHp,u.userData.hp+2*dt);updateHPBar(u)}
+// Glow pulse for special abilities
+if(u.userData.glowOrb){u.userData.glowOrb.material.opacity=0.1+Math.sin(gs.battleTime*4)*0.08}
+if(u.userData.regenOrb){u.userData.regenOrb.material.opacity=0.08+Math.sin(gs.battleTime*3+1)*0.06}
+if(u.userData.wings){const wf=Math.sin(gs.battleTime*12)*0.3;u.userData.wings[0].rotation.z=wf;u.userData.wings[1].rotation.z=-wf}
+}
+for(let i=gs.playerUnits.length-1;i>=0;i--)if(gs.playerUnits[i].userData.hp<=0){deathEffect(gs.playerUnits[i]);battleGroup.remove(gs.playerUnits[i]);gs.compostCount++;gs.playerUnits.splice(i,1)}
+for(let i=gs.enemyUnits.length-1;i>=0;i--)if(gs.enemyUnits[i].userData.hp<=0){deathEffect(gs.enemyUnits[i]);battleGroup.remove(gs.enemyUnits[i]);gs.enemyUnits.splice(i,1)}
+updateBattleHUD();
+if(!gs.playerUnits.length&&gs.battleActive){gs.battleActive=false;setTimeout(()=>endBattle(false),800)}
+else if(!gs.enemyUnits.length&&gs.battleActive){gs.battleActive=false;setTimeout(()=>endBattle(true),800)}}
+
+function endBattle(won){gs.screen=won?'victory':'defeat';
+const survivors=[];for(const u of gs.playerUnits)if(u.userData.hp>0){const o=gs.army[u.userData.armyIndex];survivors.push({...o,hp:u.userData.hp})}
+gs.army=survivors;
+[...gs.playerUnits,...gs.enemyUnits].forEach(u=>battleGroup.remove(u));gs.playerUnits=[];gs.enemyUnits=[];
+$('battle-hud').style.display='none';const sc=survivors.length;
+if(won){const rw=STAGES[gs.currentStage].reward;gs.manicorns+=rw;const cr=gs.compostCount;gs.nanaCoins+=cr;
+// Random fertilizer drop on victory
+const fertKeys=Object.keys(FERTILIZERS).filter(k=>isFertInSeason(k));const dropKey=fertKeys[Math.floor(Math.random()*fertKeys.length)];gs.fertilizers[dropKey]++;
+$('result-title').textContent='Victory!';$('result-title').style.color='#FFD700';
+let t='+'+rw+' Manicorns';if(cr>0)t+='  |  +'+cr+' Nana Coins (compost)';t+='\n+1 '+FERTILIZERS[dropKey].name+' fertilizer!';t+='\n'+sc+' banana(s) survived!';$('result-text').textContent=t;
+if(gs.currentStage<STAGES.length-1)gs.currentStage++;
+$('result-buttons').innerHTML='<button class="btn-continue" onclick="window._rtk()">Continue</button>'}
+else{const cr=gs.compostCount;gs.nanaCoins+=cr;$('result-title').textContent='Defeated!';$('result-title').style.color='#e74c3c';
+let t='Your bananas were squashed...';if(sc>0)t=sc+' banana(s) survived, but the battle was lost...';if(cr>0)t+='\n+'+cr+' Nana Coins from compost';$('result-text').textContent=t;
+$('result-buttons').innerHTML='<button class="btn-retry" onclick="window._rtk()">Return to Kingdom</button>'}
+$('result-overlay').style.display='flex'}
+
+window._rtk=function(){gs.screen='kingdom';gs.compostCount=0;$('result-overlay').style.display='none';
+kingdomGroup.visible=true;battleGroup.visible=false;updateArmyUI();updateBattleBtn();updateResourceUI();
+$('army-panel').style.display='block';$('battle-btn').style.display='block';$('hint-text').style.display='block';$('compost-bar').style.display='block';$('fert-panel').style.display='block';$('active-fert-indicator').style.display='block';$('save-btns').style.display='flex';setCamPreset('default',true);updateCompostUI();updateFertShopUI();saveGame()};
+
+// ===========================================================
+// EFFECTS
+// ===========================================================
+const particles=[];
+function deathEffect(u){const pos=u.position.clone(),col=u.userData.type==='banana'?0xFFD700:0xDC3030;for(let i=0;i<12;i++){const sz=.03+Math.random()*.05;const p=mkS(sz,new THREE.MeshBasicMaterial({color:col,transparent:true}));p.position.copy(pos).add(new THREE.Vector3(0,.5,0));battleGroup.add(p);particles.push({mesh:p,vel:new THREE.Vector3((Math.random()-.5)*5,Math.random()*4+1,(Math.random()-.5)*5),life:1,parent:battleGroup,gravity:true})}}
+function spawnHitParticles(pos,col){for(let i=0;i<4;i++){const p=mkS(.02,new THREE.MeshBasicMaterial({color:col,transparent:true}));p.position.copy(pos).add(new THREE.Vector3(0,.5,0));battleGroup.add(p);particles.push({mesh:p,vel:new THREE.Vector3((Math.random()-.5)*3,Math.random()*2+.5,(Math.random()-.5)*3),life:.5,parent:battleGroup,gravity:true})}}
+function flashUnit(u){const ch=[];u.traverse(c=>{if(c.isMesh&&c.material?.color&&c!==u.userData.hpFill)ch.push({m:c,c:c.material.color.getHex()})});ch.forEach(c=>c.m.material.color.set(0xFFFFFF));setTimeout(()=>ch.forEach(c=>c.m.material.color.set(c.c)),80)}
+function updateParticles(dt){for(let i=particles.length-1;i>=0;i--){const p=particles[i];if(p.gravity)p.vel.y-=12*dt;p.mesh.position.add(p.vel.clone().multiplyScalar(dt));p.life-=dt*2.5;p.mesh.material.opacity=Math.max(0,p.life);p.mesh.scale.setScalar(Math.max(.1,p.life));if(p.life<=0){p.parent.remove(p.mesh);particles.splice(i,1)}}}
+function updateHPBar(u){const r=Math.max(0,u.userData.hp/u.userData.maxHp);if(u.userData.hpFill){u.userData.hpFill.scale.x=Math.max(.01,r);u.userData.hpFill.position.x=-(1-r)*.28;u.userData.hpFill.material.color.setHex(r>.5?0x44FF44:r>.25?0xFFFF00:0xFF4444)}}
+
+// ===========================================================
+// UI
+// ===========================================================
+function updateResourceUI(){$('manicorn-count').textContent=gs.manicorns;$('nana-count').textContent=gs.nanaCoins}
+function updateArmyUI(){const l=$('army-list');l.innerHTML='';gs.army.forEach(u=>{const d=document.createElement('div');d.className='army-unit';
+const colorHex='#'+new THREE.Color(u.color).getHexString();
+const abilityTag=u.ability?' <span style="color:#b8b;font-size:0.65rem">'+(u.ability.includes('lifesteal')?'\u2764':'')+(u.ability.includes('regen')?'\u2728':'')+'</span>':'';
+d.innerHTML='<div class="unit-color" style="background:'+colorHex+'"></div>'+
+    '<div class="unit-stats"><div>'+u.label+abilityTag+'</div>'+
+    '<div style="font-size:.7rem;color:#aaa">'+Math.round(u.hp)+'HP '+u.atk+'ATK</div></div>';
+l.appendChild(d)});$('army-count').textContent=gs.army.length+' / '+gs.maxArmySize}
+function updateBattleBtn(){const b=$('battle-btn'),s=STAGES[gs.currentStage];if(s)b.querySelector('.stage-label').textContent='Stage '+(gs.currentStage+1)+': '+s.name;b.disabled=!gs.army.length}
+function updateBattleHUD(){$('b-banana-count').textContent=gs.playerUnits.filter(u=>u.userData.hp>0).length+' Bananas';$('b-tomato-count').textContent=gs.enemyUnits.filter(u=>u.userData.hp>0).length+' Tomatoes'}
+function updateCompostUI(){$('compost-bar').textContent=gs.compostCount>0?'Compost: '+gs.compostCount+' bananas composted last battle':'Compost bin ready \u2014 defeated bananas earn Nana Coins'}
+function showNotification(t){const e=document.createElement('div');e.className='notification';e.textContent=t;document.body.appendChild(e);setTimeout(()=>e.remove(),2100)}
+function showHarvestPopup(x,y,s){const e=document.createElement('div');e.className='harvest-popup';e.style.left=x+'px';e.style.top=y+'px';e.textContent=s.label+'!';e.style.color='#'+new THREE.Color(s.color).getHexString();document.body.appendChild(e);setTimeout(()=>e.remove(),1100)}
+
+// ===========================================================
+// FERTILIZER SHOP LOGIC
+// ===========================================================
+function updateFertShopUI(){
+    const list=$('fert-list');
+    list.innerHTML='';
+    for(const[key,fert]of Object.entries(FERTILIZERS)){
+        const inSeason=isFertInSeason(key);
+        const div=document.createElement('div');
+        div.className='fert-item'+(gs.fertSelection.includes(key)?' selected':'');
+        if(!inSeason)div.style.opacity='0.4';
+        const seasonTag=fert.season&&!inSeason?' <span style="color:#f66;font-size:0.65rem">('+fert.season.charAt(0).toUpperCase()+fert.season.slice(1)+' only)</span>':'';
+        const ownedText=gs.fertilizers[key]>0?'Owned: '+gs.fertilizers[key]:(inSeason?'Owned: 0':'Out of season');
+        div.innerHTML='<div class="fert-icon">'+fert.icon+'</div>'+
+            '<div class="fert-info"><div class="fert-name">'+fert.name+seasonTag+'</div>'+
+            '<div class="fert-cost">'+fert.cost+' NC | '+fert.hp+'HP '+fert.atk+'ATK</div>'+
+            '<div class="fert-count">'+ownedText+'</div></div>';
+        div.onclick=()=>{if(inSeason||gs.fertilizers[key]>0)toggleFertSelection(key);else showNotification(fert.name+' is only available during '+fert.season+'!')};
+        list.appendChild(div);
+    }
+    const sel=gs.fertSelection;
+    const buyBtn=$('fert-buy-btn');
+    const applyBtn=$('fert-apply-btn');
+    const combineBtn=$('fert-combine-btn');
+
+    if(sel.length===1){
+        const f=FERTILIZERS[sel[0]];
+        const canBuy=isFertInSeason(sel[0])&&gs.nanaCoins>=f.cost;
+        buyBtn.disabled=!canBuy;
+        buyBtn.textContent=isFertInSeason(sel[0])?'Buy '+f.name+' ('+f.cost+' NC)':f.name+' — out of season';
+        applyBtn.disabled=gs.fertilizers[sel[0]]<=0;
+        applyBtn.textContent='Apply '+f.name+' to Tree';
+        combineBtn.disabled=true;
+    }else if(sel.length===2){
+        buyBtn.disabled=true;
+        buyBtn.textContent='Buy Selected';
+        applyBtn.disabled=true;
+        const ck=comboKey(sel[0],sel[1]);
+        const combo=FERTILIZER_COMBOS[ck];
+        if(combo&&gs.fertilizers[sel[0]]>0&&gs.fertilizers[sel[1]]>0){
+            combineBtn.disabled=false;
+            combineBtn.textContent='Combine: '+combo.name;
+        }else{
+            combineBtn.disabled=true;
+            combineBtn.textContent='Need both fertilizers';
+        }
+    }else{
+        buyBtn.disabled=true;
+        buyBtn.textContent='Buy Selected';
+        applyBtn.disabled=true;
+        applyBtn.textContent='Apply to Tree';
+        combineBtn.disabled=true;
+    }
+
+    const indicator=$('active-fert-indicator');
+    const fertCfg=getActiveFertConfig();
+    if(fertCfg){
+        indicator.style.display='block';
+        indicator.textContent='\uD83C\uDF31 Tree: '+fertCfg.label;
+    }else{
+        indicator.style.display=gs.screen==='kingdom'?'block':'none';
+        indicator.textContent='\uD83C\uDF31 Tree: Normal';
+    }
+}
+
+function toggleFertSelection(key){
+    const idx=gs.fertSelection.indexOf(key);
+    if(idx>-1){gs.fertSelection.splice(idx,1)}
+    else{if(gs.fertSelection.length>=2)gs.fertSelection.shift();gs.fertSelection.push(key)}
+    updateFertShopUI();
+}
+
+window._buyFert=function(){
+    if(gs.fertSelection.length!==1)return;
+    const key=gs.fertSelection[0];
+    const fert=FERTILIZERS[key];
+    if(gs.nanaCoins<fert.cost){showNotification('Not enough Nana Coins!');return}
+    gs.nanaCoins-=fert.cost;
+    gs.fertilizers[key]++;
+    updateResourceUI();
+    updateFertShopUI();
+    showNotification('Bought '+fert.name+' fertilizer!');
+};
+
+window._applyFert=function(){
+    if(gs.fertSelection.length!==1)return;
+    const key=gs.fertSelection[0];
+    if(gs.fertilizers[key]<=0){showNotification('You don\'t have any '+FERTILIZERS[key].name+'!');return}
+    gs.fertilizers[key]--;
+    gs.activeFertilizer=key;
+    updateFertShopUI();
+    updateTreeFertVisual();
+    showNotification(FERTILIZERS[key].name+' applied to tree!');
+};
+
+window._combineFert=function(){
+    if(gs.fertSelection.length!==2)return;
+    const[a,b]=gs.fertSelection;
+    const ck=comboKey(a,b);
+    if(!FERTILIZER_COMBOS[ck])return;
+    if(gs.fertilizers[a]<=0||gs.fertilizers[b]<=0){showNotification('Need both fertilizers to combine!');return}
+    gs.fertilizers[a]--;
+    gs.fertilizers[b]--;
+    gs.activeFertilizer=[a,b];
+    updateFertShopUI();
+    updateTreeFertVisual();
+    showNotification('Combined into '+FERTILIZER_COMBOS[ck].name+'!');
+};
+
+window._clearFert=function(){
+    gs.activeFertilizer=null;
+    updateFertShopUI();
+    updateTreeFertVisual();
+    showNotification('Tree fertilizer cleared');
+};
+
+$('fert-buy-btn').addEventListener('click',window._buyFert);
+$('fert-apply-btn').addEventListener('click',window._applyFert);
+$('fert-combine-btn').addEventListener('click',window._combineFert);
+$('fert-clear-btn').addEventListener('click',window._clearFert);
+
+// Tree visual feedback for active fertilizer
+let treeFertGlow=null;
+function updateTreeFertVisual(){
+    if(treeFertGlow){bananaTree.remove(treeFertGlow);treeFertGlow=null}
+    const cfg=getActiveFertConfig();
+    if(cfg){
+        const glowColor=cfg.color;
+        const glowMat=new THREE.MeshBasicMaterial({color:glowColor,transparent:true,opacity:0.08});
+        treeFertGlow=mkS(2.0,glowMat);
+        P(treeFertGlow,0,3.5,0);
+        treeFertGlow.castShadow=false;
+        treeFertGlow.receiveShadow=false;
+        bananaTree.add(treeFertGlow);
+    }
+}
+
+// ===========================================================
+// INPUT
+// ===========================================================
+renderer.domElement.addEventListener('pointerdown',e=>{if(gs.screen==='kingdom'){const b=getClickedBanana(e);if(b)harvestBanana(b)}else if(gs.screen==='battle'){const u=getClickedBattleUnit(e);if(u){if(gs.selectedUnit)gs.selectedUnit.userData.selected=false;gs.selectedUnit=u;u.userData.selected=true;showNotification('Banana selected!')}}});
+
+// ===========================================================
+// CAMERA - Full orbit/zoom/pan with preset views
+// ===========================================================
+const orbitControls=new OrbitControls(camera,renderer.domElement);
+orbitControls.enableDamping=true;orbitControls.dampingFactor=.08;
+orbitControls.minDistance=3;orbitControls.maxDistance=60;
+orbitControls.maxPolarAngle=Math.PI*.48;
+orbitControls.minPolarAngle=.05;
+orbitControls.mouseButtons={LEFT:THREE.MOUSE.ROTATE,MIDDLE:THREE.MOUSE.DOLLY,RIGHT:THREE.MOUSE.PAN};
+orbitControls.touches={ONE:THREE.TOUCH.ROTATE,TWO:THREE.TOUCH.DOLLY_PAN};
+orbitControls.enabled=false;
+renderer.domElement.addEventListener('contextmenu',e=>e.preventDefault());
+
+const KT={x:TREE_X,z:TREE_Z-3};
+const CAM_PRESETS={
+    kingdom:{
+        default:{pos:[KT.x,8,KT.z+14],tgt:[KT.x,3,KT.z]},
+        top:{pos:[KT.x,25,KT.z+.1],tgt:[KT.x,0,KT.z]},
+        side:{pos:[KT.x+20,6,KT.z],tgt:[KT.x,3,KT.z]},
+        front:{pos:[KT.x,5,KT.z+20],tgt:[KT.x,3,KT.z]},
+        low:{pos:[KT.x+6,1.5,KT.z+10],tgt:[KT.x,4,KT.z]},
+        free:null
+    },
+    battle:{
+        default:{pos:[0,8,14],tgt:[0,1,0]},
+        top:{pos:[0,22,.1],tgt:[0,0,0]},
+        side:{pos:[20,5,0],tgt:[0,1,0]},
+        front:{pos:[0,4,18],tgt:[0,1,0]},
+        low:{pos:[5,1.5,12],tgt:[0,2,0]},
+        free:null
+    }
+};
+
+let currentCamPreset='default';
+function setCamPreset(name,instant){
+    const presets=gs.screen==='battle'?CAM_PRESETS.battle:CAM_PRESETS.kingdom;
+    currentCamPreset=name;
+    document.querySelectorAll('#cam-panel .cam-btn').forEach(b=>{b.classList.toggle('active',b.dataset.cam===name)});
+    if(name==='free'){
+        orbitControls.minPolarAngle=.05;orbitControls.maxPolarAngle=Math.PI*.95;
+        orbitControls.minDistance=1;orbitControls.maxDistance=80;
+        return;
+    }
+    orbitControls.minPolarAngle=.05;orbitControls.maxPolarAngle=Math.PI*.48;
+    orbitControls.minDistance=3;orbitControls.maxDistance=60;
+    const p=presets[name]||presets.default;
+    if(instant){
+        camera.position.set(...p.pos);orbitControls.target.set(...p.tgt);orbitControls.update();
+    }else{
+        camAnimating=true;camAnimStart=performance.now();camAnimDur=600;
+        camFrom={pos:camera.position.clone(),tgt:orbitControls.target.clone()};
+        camTo={pos:new THREE.Vector3(...p.pos),tgt:new THREE.Vector3(...p.tgt)};
+    }
+}
+
+let camAnimating=false,camAnimStart=0,camAnimDur=600;
+let camFrom=null,camTo=null;
+function updateCamAnim(){
+    if(!camAnimating)return;
+    const t=Math.min(1,(performance.now()-camAnimStart)/camAnimDur);
+    const ease=t<.5?4*t*t*t:(1-Math.pow(-2*t+2,3)/2);
+    camera.position.lerpVectors(camFrom.pos,camTo.pos,ease);
+    orbitControls.target.lerpVectors(camFrom.tgt,camTo.tgt,ease);
+    orbitControls.update();
+    if(t>=1)camAnimating=false;
+}
+
+document.querySelectorAll('#cam-panel .cam-btn').forEach(btn=>{
+    btn.addEventListener('click',()=>setCamPreset(btn.dataset.cam));
+});
+
+function updateCamera(){
+    updateCamAnim();
+    orbitControls.update();
+}
+
+// ===========================================================
+// ANIMATIONS
+// ===========================================================
+let kTime=0;
+function updateKingdomAnim(dt){kTime+=dt;
+bananaTree.rotation.z=Math.sin(kTime*.5)*.012;bananaTree.rotation.x=Math.cos(kTime*.7)*.008;
+bananaTree.children.forEach(c=>{if(c.isGroup&&c.children.length>5)c.rotation.z=Math.sin(kTime*1.2+c.rotation.y*3)*.04});
+for(const p of ambientParticles){p.position.y=p.userData.baseY+Math.sin(kTime*p.userData.speed+p.userData.phase)*.5;p.position.x+=p.userData.drift*dt;if(p.position.x>14)p.position.x=-14;if(p.position.x<-14)p.position.x=14}
+cloudGroup.children.forEach(c=>{c.position.x+=c.userData.speed*dt;if(c.position.x>70)c.position.x=-70});
+kingdomGroup.traverse(c=>{if(c.userData.isFlag){c.rotation.y=Math.sin(kTime*2.5+c.position.x)*.2;c.rotation.z=Math.sin(kTime*3+c.position.y)*.08}if(c.userData.isTorch)c.scale.setScalar(.9+Math.sin(kTime*12+c.id)*.15);if(c.userData.isFountain){c.material.opacity=.65+Math.sin(kTime*2)*.1}});
+// Fertilizer glow pulse
+if(treeFertGlow){treeFertGlow.material.opacity=0.05+Math.sin(kTime*2)*0.04;treeFertGlow.scale.setScalar(1+Math.sin(kTime*1.5)*0.05)}
+}
+
+// ===========================================================
+// SAVE / LOAD SYSTEM
+// ===========================================================
+const SAVE_KEY='bananaKingdom_save';
+
+function saveGame(){
+    const data={
+        manicorns:gs.manicorns,
+        nanaCoins:gs.nanaCoins,
+        currentStage:gs.currentStage,
+        army:gs.army.map(u=>({hp:u.hp,maxHp:u.maxHp,atk:u.atk,speed:u.speed,color:u.color,label:u.label,quality:u.quality,
+            fertType:u.fertType||null,ability:u.ability||null,color2:u.color2||null})),
+        maxArmySize:gs.maxArmySize,
+        growInterval:gs.growInterval,
+        fertilizers:{...gs.fertilizers},
+        activeFertilizer:gs.activeFertilizer,
+        compostCount:gs.compostCount,
+        treeBananas:gs.treeBananas.map(b=>({slotIdx:b.slotIdx,timer:b.timer,spawning:b.spawning,spawnProgress:b.spawnProgress})),
+        savedAt:Date.now()
+    };
+    try{localStorage.setItem(SAVE_KEY,JSON.stringify(data));showNotification('Game saved!');return true}
+    catch(e){showNotification('Save failed!');return false}
+}
+
+function loadGame(){
+    try{
+        const raw=localStorage.getItem(SAVE_KEY);
+        if(!raw)return false;
+        const data=JSON.parse(raw);
+        gs.manicorns=data.manicorns||0;
+        gs.nanaCoins=data.nanaCoins||0;
+        gs.currentStage=data.currentStage||0;
+        gs.army=data.army||[];
+        gs.maxArmySize=data.maxArmySize||8;
+        gs.growInterval=data.growInterval||6;
+        const defaultFerts={plainana:0,buff:0,halloween:0,christmas:0,volcanic:0,frost:0,electric:0,shadow:0,golden:0,toxic:0,crystal:0,cosmic:0,honey:0,radioactive:0,ocean:0,cherry:0,thunder:0,ancient:0,candy:0,lunar:0,inferno:0,nature:0,steel:0,phantom:0};
+        gs.fertilizers={...defaultFerts,...(data.fertilizers||{})};
+        gs.activeFertilizer=data.activeFertilizer||null;
+        gs.compostCount=data.compostCount||0;
+        // Restore tree bananas from save
+        for(const b of gs.treeBananas){bananaTree.remove(b.mesh)}
+        gs.treeBananas=[];
+        if(data.treeBananas){
+            for(const tb of data.treeBananas){
+                const m=createTreeBanana();
+                m.position.copy(BANANA_SLOTS[tb.slotIdx]);
+                if(!tb.spawning)m.scale.setScalar(1);
+                else m.scale.setScalar(Math.min(1,tb.spawnProgress||0));
+                m.userData.bananaMat.color.copy(getRipenessColor(tb.timer));
+                bananaTree.add(m);
+                gs.treeBananas.push({mesh:m,slotIdx:tb.slotIdx,timer:tb.timer,spawning:tb.spawning||false,spawnProgress:tb.spawnProgress||1});
+            }
+        }
+        return true;
+    }catch(e){return false}
+}
+
+function hasSave(){try{return !!localStorage.getItem(SAVE_KEY)}catch(e){return false}}
+
+// Auto-save every 30 seconds while in kingdom
+setInterval(()=>{if(gs.screen==='kingdom')saveGame()},30000);
+
+// Save on tab close / navigate away
+window.addEventListener('beforeunload',()=>{if(gs.screen==='kingdom'||gs.screen==='victory'||gs.screen==='defeat')saveGame()});
+
+// Wire up save/load buttons
+$('save-btn').addEventListener('click',()=>saveGame());
+$('load-btn').addEventListener('click',()=>{if(loadGame()){updateArmyUI();updateBattleBtn();updateResourceUI();updateCompostUI();updateFertShopUI();updateTreeFertVisual();showNotification('Game loaded!')}else{showNotification('No save found!')}});
+
+// Show continue button if save exists
+if(hasSave())$('continue-btn').style.display='inline-block';
+
+function enterKingdom(){
+    gs.screen='kingdom';$('title-screen').style.display='none';
+    $('hud').style.display='block';$('army-panel').style.display='block';$('battle-btn').style.display='block';
+    $('hint-text').style.display='block';$('compost-bar').style.display='block';
+    $('fert-panel').style.display='block';$('active-fert-indicator').style.display='block';
+    $('cam-panel').style.display='block';$('cam-label').style.display='block';
+    $('save-btns').style.display='flex';
+    orbitControls.enabled=true;setCamPreset('default',true);
+    updateArmyUI();updateBattleBtn();updateResourceUI();updateCompostUI();updateFertShopUI();updateTreeFertVisual();
+}
+
+// ===========================================================
+// GAME START
+// ===========================================================
+$('start-btn').addEventListener('click',()=>{enterKingdom();spawnTreeBanana();setTimeout(()=>spawnTreeBanana(),2000)});
+$('continue-btn').addEventListener('click',()=>{loadGame();enterKingdom();spawnTreeBanana();setTimeout(()=>spawnTreeBanana(),2000)});
+$('battle-btn').addEventListener('click',()=>{if(gs.army.length>0)startBattle()});
+
+// ===========================================================
+// MAIN LOOP
+// ===========================================================
+let lastTime=0;
+function animate(time){requestAnimationFrame(animate);const dt=Math.min((time-lastTime)/1000,.05);lastTime=time;
+if(gs.screen==='kingdom'){updateTree(dt);updateKingdomAnim(dt)}
+if(gs.screen==='battle')updateBattle(dt);
+updateParticles(dt);updateCamera();composer.render()}
+requestAnimationFrame(animate);
+</script>
+</body>
+</html>

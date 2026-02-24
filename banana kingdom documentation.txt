@@ -1,0 +1,54 @@
+Banana Kingdom - Detailed Game Documentation
+Overview
+Banana Kingdom is a strategy game with mechanics similar to Cookie Run: Kingdom. Players build an army of fruit and vegetable characters to battle against tomato enemies and unlock the legendary King Keaser.
+Core Gameplay Mechanics
+Resource & Character System
+Players use manicorns as the primary currency to purchase and upgrade units. The main resource for building your fighting force comes from managing a banana tree, which serves as your production center. Unlike Cookie Run Kingdom where you craft cookies using cutters and dough, Banana Kingdom focuses on harvesting bananas at the right time to create optimal fighters.
+Banana Tree Harvesting
+The banana tree is a tall structure where bananas grow and can be harvested. Timing is critical when pulling bananas from the tree:
+Too Early (Green): Bananas harvested while still young are underdeveloped and weaker in battle Perfect Timing: Bananas picked at the right moment are at peak strength Too Late (Brown): Over-ripe bananas are too old and less effective as fighters
+Resource Recycling & Nana Coins
+When bananas are defeated in battle or become unusable, they can be placed in a compost bin. This recycling system provides:
+Nana Coins (currency for purchasing items and upgrades) Fertilizers (used to grow new bananas on your tree) This creates a sustainable gameplay loop where defeated units contribute to future unit production.
+
+Banana Varieties & Fertilizer System
+Diverse Banana Types
+The game features numerous banana varieties, each with unique abilities and designs. Examples include:
+Plainana: A banana that can fly and travels by plane Rideable Bananas: Certain bananas can be ridden in or serve as vehicles for other bananas Themed Bananas: Special holiday and seasonal variants
+Seasonal & Holiday Fertilizers
+Different banana types require specific fertilizers that are only available during certain times:
+Halloween Fertilizers: Available exclusively during Halloween season, used to create Halloween-themed bananas Christmas Fertilizers: Available exclusively during the Christmas/Holiday season, used to create Christmas-themed bananas Players can save up Nana Coins to purchase these limited-time fertilizers during their respective seasons.
+Fertilizer Combination System
+One of the game's unique mechanics allows players to combine different fertilizers to create hybrid bananas:
+Combine a Halloween fertilizer with a Christmas fertilizer to create a halfHalloween, half-Christmas banana This system encourages experimentation and creates unique banana variants with combined thematic elements Mixed fertilizers produce cooler and more powerful banana variants
+Battle System & Controls
+Automatic Combat
+All bananas fight automatically during battles without requiring player input. This allows
+
+for a streamlined, hands-off gameplay experience where your army battles independently based on their stats and abilities.
+Manual Control Option
+For players who want more strategic control, the game allows optional manual control of bananas during combat:
+Click-to-Control: Players can click on individual bananas to take direct control of them Strategic Gameplay: Manual control allows for smarter, more tactical decisionmaking during battles Platform Support: Manual controls work on both computer and touch screen devices Selective Control: Players can control one banana at a time while others continue fighting automatically This hybrid system lets players choose between casual, automatic battles or engaging in more hands-on, strategic combat depending on their preference.
+Alliance & Combat System
+Allies: You can form alliances with other fruits and vegetables to strengthen your army. Enemies: You battle against tomato faction enemies throughout the game. Unit Types: Some fruits and vegetables join you as allies, while others must be defeated in battle before alliance is possible.
+King Keaser - The Ultimate Unlock
+The Objective
+King Keaser is the ultimate banana unit, locked away and unavailable at the start of the game. He is the final goal players work toward throughout the campaign.
+Why He's Imprisoned
+King Keaser's powers have been stripped away by a magical spell, preventing him from escaping his current state or fighting independently.
+The Path to Unlocking Him
+
+Players must journey to the King of the Tomatoes' Castle to rescue and free King Keaser. To succeed, you must possess Buff Nana, an exceptionally strong banana unit that is essential for this quest.
+Campaign Progression & Cinematic Events
+The Castle Assault
+When you reach the tomato king's castle, a cinematic sequence triggers: 1. You (the player) enter the castle as a spectator at first 2. An intense battle sequence begins 3. Your forces initially get overpowered and appear to be defeated 4. Before the final blow: You have the opportunity to save King Keaser
+Transformation & Final Boss Battle
+Upon saving King Keaser, you are able to become King Keaser yourself, gaining access to his true power. You then engage in an epic final confrontation against the Tomato King using a lightning sword.
+Victory Rewards
+Defeating the Tomato King grants you: Crystals (premium currency/rewards) Gems (advanced crafting materials) Permanent unlocking of King Keaser as a playable unit
+Progression Summary
+1. Start as a spectator with your banana tree 2. Harvest bananas at optimal times to build your army 3. Use manicorns to enhance and purchase new units 4. Form alliances with fruit and vegetable allies 5. Battle tomato enemies across multiple stages (automatic or manual control) 6. Recycle defeated units through the compost bin for Nana Coins and fertilizers
+
+7. Collect seasonal fertilizers during their respective holidays 8. Combine fertilizers to create unique hybrid bananas 9. Gather Buff Nana as a key prerequisite 10. Storm the Tomato King's Castle 11. Save King Keaser from his spell 12. Unlock the final boss fight with lightning sword combat 13. Claim crystals and gems as ultimate rewards
+
+
