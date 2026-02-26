@@ -47,6 +47,10 @@ canvas{display:block;position:fixed;top:0;left:0;z-index:1;touch-action:none}
 .notification{position:fixed;top:80px;left:50%;transform:translateX(-50%);z-index:30;background:rgba(0,0,0,.8);color:#FFD700;padding:10px 24px;border-radius:8px;font-weight:600;pointer-events:none;animation:notifAnim 2s ease-out forwards;backdrop-filter:blur(4px)}
 @keyframes notifAnim{0%{opacity:0;transform:translateX(-50%) translateY(-10px)}15%{opacity:1;transform:translateX(-50%) translateY(0)}70%{opacity:1}100%{opacity:0;transform:translateX(-50%) translateY(-20px)}}
 #compost-bar{position:fixed;bottom:15px;left:50%;transform:translateX(-50%);z-index:10;display:none;background:rgba(80,50,20,.85);color:#ddd;padding:8px 20px;border-radius:8px;font-size:.85rem;pointer-events:none;backdrop-filter:blur(4px);border:1px solid rgba(139,105,20,.4)}
+#attack-btn{position:fixed;top:50px;left:15px;z-index:15;display:none;width:70px;height:70px;background:linear-gradient(135deg,#c0392b,#e74c3c);color:#fff;border:3px solid #ff6655;border-radius:16px;font-size:1.6rem;font-weight:700;cursor:pointer;pointer-events:auto;box-shadow:0 4px 16px rgba(231,76,60,.5);transition:transform .1s,background .1s;user-select:none;-webkit-tap-highlight-color:transparent;line-height:1}
+#attack-btn:hover{transform:scale(1.08);background:linear-gradient(135deg,#e74c3c,#ff5544)}
+#attack-btn:active{transform:scale(.95);background:#a02015}
+#attack-btn .atk-key{display:block;font-size:.55rem;color:rgba(255,255,255,.7);margin-top:2px;font-weight:400}
 #cam-panel{position:fixed;right:15px;top:60px;z-index:12;display:none;pointer-events:auto}
 #cam-panel .cam-btn{display:block;width:100%;margin-bottom:4px;padding:8px 14px;background:rgba(0,0,0,.7);color:#fff;border:1px solid rgba(255,215,0,.35);border-radius:8px;font-size:.8rem;font-weight:600;cursor:pointer;text-align:center;backdrop-filter:blur(4px);transition:background .15s,border-color .15s}
 #cam-panel .cam-btn:hover{background:rgba(255,215,0,.25);border-color:#FFD700}
@@ -109,6 +113,7 @@ canvas{display:block;position:fixed;top:0;left:0;z-index:1;touch-action:none}
 <div id="stage-select-panel" style="position:fixed;left:10px;bottom:15px;z-index:15;display:none;background:rgba(0,0,0,.85);border-radius:8px;padding:8px;color:#fff;width:155px;pointer-events:auto;backdrop-filter:blur(4px);border:1px solid rgba(255,215,0,.5);max-height:200px;overflow-y:auto;box-shadow:0 3px 12px rgba(0,0,0,.6)"><h3 style="font-size:.7rem;color:#FFD700;margin-bottom:5px;text-align:center">Select Stage</h3><div id="stage-list"></div></div>
 <div id="mani-panel"><h3>&#x1F984; Manicorn Shop</h3><div id="mani-tabs"><button class="active" data-tab="tree">&#x1F333;Tree</button><button data-tab="army">&#x2694;&#xFE0F;Army</button><button data-tab="mercs">&#x1F451;Mercs</button><button data-tab="abilities">&#x2728;Powers</button></div><div id="mani-list"></div><button id="mani-buy-btn" disabled>Select an upgrade</button></div>
 <div id="hint-text">Click bananas on the tree to harvest!</div>
+<button id="attack-btn">&#x2694;&#xFE0F;<span class="atk-key">[F]</span></button>
 <div id="battle-hud"><span id="b-banana-count">0</span> <span class="vs">VS</span> <span id="b-tomato-count">0</span></div>
 <div id="result-overlay"><h2 id="result-title">Victory!</h2><div class="reward-text" id="result-text"></div><div id="result-buttons"></div></div>
 <div id="cutscene-overlay"><div id="cutscene-text"></div><div id="cutscene-skip">CLICK TO CONTINUE</div></div>
@@ -371,6 +376,18 @@ FERTILIZER_COMBOS[comboKey('lunar','nature')]={name:'Moonbloom',hp:170,atk:14,sp
 // Cherry combos
 FERTILIZER_COMBOS[comboKey('cherry','nature')]={name:'Spring Garden',hp:150,atk:14,speed:2.4,color:0xFFAACC,label:'Spring Garden',ability:'regen'};
 FERTILIZER_COMBOS[comboKey('cherry','ocean')]={name:'Coral Bloom',hp:140,atk:14,speed:2.4,color:0xFF88CC,label:'Coral Bloom',ability:'regen'};
+
+// === TOMATO ENEMY TYPES ===
+const TOMATO_TYPES=[
+    {key:'normal',weight:5,hpMul:1,atkMul:1,spdMul:1,scaleMul:1,color:0xDD3333,ability:null},
+    {key:'armored',weight:2,hpMul:1.5,atkMul:0.9,spdMul:0.8,scaleMul:1.05,color:0x889999,ability:'shield'},
+    {key:'giant',weight:1.5,hpMul:2,atkMul:1.3,spdMul:0.7,scaleMul:1.5,color:0xCC2222,ability:null},
+    {key:'speedy',weight:2,hpMul:0.7,atkMul:0.9,spdMul:1.6,scaleMul:0.75,color:0x55AA44,ability:'dodge'},
+    {key:'fire',weight:1.5,hpMul:0.9,atkMul:1.2,spdMul:1.1,scaleMul:1,color:0xFF6600,ability:'burn'},
+    {key:'healer',weight:1.5,hpMul:1.1,atkMul:0.8,spdMul:0.95,scaleMul:1,color:0xEE6688,ability:'regen'}
+];
+function pickTomatoType(){const total=TOMATO_TYPES.reduce((s,t)=>s+t.weight,0);let r=Math.random()*total;for(const t of TOMATO_TYPES){r-=t.weight;if(r<=0)return t}return TOMATO_TYPES[0]}
+function applyTomatoType(enemyStats){if(enemyStats.boss)return enemyStats;const tt=pickTomatoType();return{...enemyStats,hp:Math.floor(enemyStats.hp*tt.hpMul),atk:Math.floor(enemyStats.atk*tt.atkMul),speed:Math.round(enemyStats.speed*tt.spdMul*100)/100,scale:Math.round((enemyStats.scale||1)*tt.scaleMul*100)/100,tomatoType:tt.key}}
 
 function getActiveFertConfig(){
     if(!gs.activeFertilizer)return null;
@@ -916,20 +933,56 @@ g.userData.walkPhase=Math.random()*Math.PI*2;g.userData.attackCooldown=0;g.userD
 g.userData.ability=stats.ability||null;return g}
 
 function createTomatoEnemy(stats){const g=new THREE.Group();const s=stats.scale||1;
-const tm=stats.boss?new THREE.MeshStandardMaterial({color:0x991111,roughness:.35,metalness:.05}):new THREE.MeshStandardMaterial({color:0xDD3333,roughness:.4,metalness:.05});
+const tt=stats.tomatoType||'normal';
+const ttConfig=TOMATO_TYPES.find(t=>t.key===tt)||TOMATO_TYPES[0];
+const bodyColor=stats.boss?0x991111:ttConfig.color;
+const tmOpts={color:bodyColor,roughness:.4,metalness:.05};
+if(tt==='fire'){tmOpts.emissive=0xFF4400;tmOpts.emissiveIntensity=.3}
+if(tt==='armored'){tmOpts.metalness=.4;tmOpts.roughness=.25}
+const tm=new THREE.MeshStandardMaterial(tmOpts);
 const bg=new THREE.SphereGeometry(.38*s,24,18);const bp=bg.attributes.position;
 for(let i=0;i<bp.count;i++){bp.setY(i,bp.getY(i)*.85);const a=Math.atan2(bp.getZ(i),bp.getX(i));const cr=Math.sin(a*6)*.015*s;bp.setX(i,bp.getX(i)+Math.cos(a)*cr);bp.setZ(i,bp.getZ(i)+Math.sin(a)*cr)}bg.computeVertexNormals();
 const body=new THREE.Mesh(bg,tm);P(body,0,.42*s,0);body.castShadow=true;body.receiveShadow=true;g.add(body);
+// Type-specific visuals
+if(tt==='armored'){
+const armorM=new THREE.MeshStandardMaterial({color:0x777788,metalness:.7,roughness:.2});
+const plate1=mkB(.3*s,.15*s,.05,armorM);P(plate1,0,.42*s,.35*s);g.add(plate1);
+const plate2=mkB(.25*s,.12*s,.05,armorM);P(plate2,-.2*s,.35*s,.25*s);plate2.rotation.y=.5;g.add(plate2);
+const plate3=mkB(.25*s,.12*s,.05,armorM);P(plate3,.2*s,.35*s,.25*s);plate3.rotation.y=-.5;g.add(plate3);
+const helmet=mkC(.2*s,.25*s,.08*s,armorM,8);P(helmet,0,.72*s,0);g.add(helmet);
+}
+if(tt==='fire'){
+const glowM=new THREE.MeshBasicMaterial({color:0xFF6600,transparent:true,opacity:.25});
+const glow=mkS(.45*s,glowM);P(glow,0,.42*s,0);g.add(glow);
+}
+if(tt==='speedy'){
+const lineM=new THREE.MeshBasicMaterial({color:0x88FF88,transparent:true,opacity:.4});
+for(let li=0;li<3;li++){const ln=mkB(.02,.06*s,.2*s,lineM);P(ln,-.15*s+li*.15*s,.42*s,-.35*s);g.add(ln)}
+}
+if(tt==='healer'){
+const sparkM=new THREE.MeshBasicMaterial({color:0xFF88AA,transparent:true,opacity:.6});
+const sp1=mkS(.04*s,sparkM);P(sp1,0,.82*s,0);sp1.userData.isSparkle=true;g.add(sp1);
+const sp2=mkS(.03*s,sparkM);P(sp2,.1*s,.78*s,.05*s);sp2.userData.isSparkle=true;g.add(sp2);
+}
+if(tt==='giant'){
+const scarM=new THREE.MeshStandardMaterial({color:0x661111,roughness:.6});
+const scar=mkB(.02*s,.18*s,.01,scarM);P(scar,.08*s,.48*s,.38*s);scar.rotation.z=.3;g.add(scar);
+}
 const stG=new THREE.Group();stG.add(P(mkC(.04*s,.06*s,.12*s,new THREE.MeshStandardMaterial({color:0x2a6a20,roughness:.6})),0,.08*s,0));
 for(let i=0;i<5;i++){const a=(i/5)*Math.PI*2;const lf=new THREE.Mesh(new THREE.PlaneGeometry(.06*s,.18*s),new THREE.MeshStandardMaterial({color:0x2d7d2d,roughness:.6,side:THREE.DoubleSide}));lf.position.set(Math.cos(a)*.05*s,0,Math.sin(a)*.05*s);lf.rotation.y=a;lf.rotation.x=-.7;lf.castShadow=true;stG.add(lf)}
 stG.position.set(0,.42*s+.28*s,0);g.add(stG);
-g.add(P(mkS(.08*s,mat.white),-.12*s,.5*s,.28*s));g.add(P(mkS(.08*s,mat.white),.12*s,.5*s,.28*s));
-g.add(P(mkS(.045*s,mat.black),-.12*s,.52*s,.34*s));g.add(P(mkS(.045*s,mat.black),.12*s,.52*s,.34*s));
+const eyeColor=tt==='fire'?0xFFCC00:tt==='speedy'?0xCCFFCC:0xFFFFF0;
+const eyeM=new THREE.MeshStandardMaterial({color:eyeColor});
+g.add(P(mkS(.08*s,eyeM),-.12*s,.5*s,.28*s));g.add(P(mkS(.08*s,eyeM),.12*s,.5*s,.28*s));
+const pupilColor=tt==='fire'?0xFF2200:tt==='healer'?0xCC0066:0x1a1a1a;
+const pupilM=new THREE.MeshStandardMaterial({color:pupilColor});
+g.add(P(mkS(.045*s,pupilM),-.12*s,.52*s,.34*s));g.add(P(mkS(.045*s,pupilM),.12*s,.52*s,.34*s));
 const bwM=new THREE.MeshStandardMaterial({color:0x2a2a2a,roughness:.8});
 const bl=mkB(.13*s,.03,.03,bwM);P(bl,-.12*s,.6*s,.33*s);bl.rotation.z=.45;g.add(bl);
 const br=mkB(.13*s,.03,.03,bwM);P(br,.12*s,.6*s,.33*s);br.rotation.z=-.45;g.add(br);
 const mo=new THREE.Mesh(new THREE.TorusGeometry(.06*s,.015,8,12,Math.PI),mat.black);P(mo,0,.34*s,.32*s);mo.rotation.x=-.2;g.add(mo);
-const fm=new THREE.MeshStandardMaterial({color:0xaa2525,roughness:.5});
+const footColor=tt==='armored'?0x556666:tt==='fire'?0xCC4400:0xaa2525;
+const fm=new THREE.MeshStandardMaterial({color:footColor,roughness:.5});
 const lf=mkS(.08*s,fm,[1.2,.4,1.5]);P(lf,-.14*s,.04,.04);g.add(lf);
 const rf=mkS(.08*s,fm,[1.2,.4,1.5]);P(rf,.14*s,.04,.04);g.add(rf);
 g.userData.leftLeg=lf;g.userData.rightLeg=rf;
@@ -938,6 +991,7 @@ const hpF=mkB(.56*s,.04,.025,new THREE.MeshBasicMaterial({color:0xFF4444}));hpG.
 hpG.position.set(0,(.42*s+.55*s)+.35,0);g.add(hpG);
 g.userData.hpFill=hpF;g.userData.stats={...stats};g.userData.hp=stats.hp;g.userData.maxHp=stats.hp;
 g.userData.walkPhase=Math.random()*Math.PI*2;g.userData.attackCooldown=0;g.userData.type='tomato';
+g.userData.ability=ttConfig.ability||'';
 // Weapon visuals — big and visible
 if(stats.weapon==='sword'){
 const bladeM=new THREE.MeshStandardMaterial({color:0xdddddd,metalness:.8,roughness:.15});
@@ -1032,8 +1086,8 @@ buildBattleMap(stage.name);
 gs.army.forEach((s,i)=>{const boosted=applyShopAbilities({hp:s.hp,maxHp:s.hp,atk:s.atk,speed:s.speed,color:s.color,color2:s.color2,fertType:s.fertType,ability:s.ability,weapon:s.weapon||null});const sol=createBananaSoldier(boosted);sol.userData.armyIndex=i;const sp=gs.army.length>1?(i/(gs.army.length-1))*6-3:0;
 // Traitor ability — 50% chance banana switches to enemy side
 if(s.ability&&s.ability.includes('traitor')&&Math.random()<0.5){sol.position.set(12,0,sp+7);sol.rotation.y=-Math.PI/2;sol.userData.type='tomato';battleGroup.add(sol);gs.enemyUnits.push(sol)}else{sol.position.set(-12,0,sp);sol.rotation.y=Math.PI/2;battleGroup.add(sol);gs.playerUnits.push(sol)}});
-stage.enemies.forEach((es,i)=>{const en=createTomatoEnemy(es);const sp=stage.enemies.length>1?(i/(stage.enemies.length-1))*6-3:0;en.position.set(12,0,sp);en.rotation.y=-Math.PI/2;battleGroup.add(en);gs.enemyUnits.push(en)});
-$('hud').style.display='block';$('army-panel').style.display='none';$('battle-btn').style.display='none';$('hint-text').style.display='none';$('compost-bar').style.display='none';$('fert-panel').style.display='none';$('active-fert-indicator').style.display='none';$('save-btns').style.display='none';$('stage-select-panel').style.display='none';$('mani-panel').style.display='none';$('battle-hud').style.display='block';setCamPreset('default',true);updateBattleHUD();
+stage.enemies.forEach((es,i)=>{const typed=applyTomatoType(es);const en=createTomatoEnemy(typed);const sp=stage.enemies.length>1?(i/(stage.enemies.length-1))*6-3:0;en.position.set(12,0,sp);en.rotation.y=-Math.PI/2;battleGroup.add(en);gs.enemyUnits.push(en)});
+$('hud').style.display='block';$('army-panel').style.display='none';$('battle-btn').style.display='none';$('hint-text').style.display='none';$('compost-bar').style.display='none';$('fert-panel').style.display='none';$('active-fert-indicator').style.display='none';$('save-btns').style.display='none';$('stage-select-panel').style.display='none';$('mani-panel').style.display='none';$('battle-hud').style.display='block';$('attack-btn').style.display='block';setCamPreset('default',true);updateBattleHUD();
 if(gs.currentStage===9)setTimeout(()=>showNotification('NEW: Click bananas to select, then click ground to move or click enemies to target!'),1500)}
 
 function $(id){return document.getElementById(id)}
@@ -1046,9 +1100,10 @@ let near=null,nd=Infinity;
 if(u.userData.forceTarget&&u.userData.forceTarget.userData.hp>0){near=u.userData.forceTarget;nd=u.position.distanceTo(near.position)}
 else{u.userData.forceTarget=null;for(const e of enemies){const d=u.position.distanceTo(e.position);if(d<nd){nd=d;near=e}}}
 u.userData.attackCooldown-=dt;
-const wpn=u.userData.stats.weapon||null;const atkRange=wpn==='bow'?8.0:1.2;const atkCD=wpn==='bow'?1.8:wpn==='sword'?0.6:0.8;
+const wpn=u.userData.stats.weapon||null;const atkRange=wpn==='bow'?8.0:1.2;const atkCD=wpn==='bow'?0.8:wpn==='sword'?0.6:0.8;
 if(nd<=atkRange){if(u.userData.attackCooldown<=0){
 let dmg=u.userData.stats.atk;
+if(wpn==='bow')dmg=Math.round(dmg*1.5);
 const ab=u.userData.ability||'';
 // Shop abilities — Battle Cry and Last Stand
 const sab=gs.shopAbilities;const sdbl=sab.warHorn?2:1;
@@ -1064,11 +1119,11 @@ if(totalDodge>0&&Math.random()<totalDodge){
 }else{
 // Shield — reduce incoming damage by 30%
 if(near.userData.ability&&near.userData.ability.includes('shield'))dmg=Math.round(dmg*0.7);
-near.userData.hp-=dmg;u.userData.attackCooldown=atkCD;
+u.userData.attackCooldown=atkCD;
 // Face target when attacking
 if(wpn==='bow'){const lookDir=new THREE.Vector3().subVectors(near.position,u.position);u.rotation.y=Math.atan2(lookDir.x,lookDir.z)}
-if(u.userData.rightArm)u.userData.rightArm.rotation.x=-1.2;flashUnit(near);updateHPBar(near);spawnHitParticles(near.position,isP?0xDD3333:0xFFD700);
-// Bow arrow projectile — huge visible arrow that flies slowly to target
+if(u.userData.rightArm)u.userData.rightArm.rotation.x=-1.2;
+// Bow arrow projectile — damage is deferred until arrow arrives
 if(wpn==='bow'){
 const aG=new THREE.Group();
 const shaft=mkB(.04,.8,.04,new THREE.MeshStandardMaterial({color:0x886644}));aG.add(shaft);
@@ -1083,9 +1138,13 @@ aG.position.copy(startPos);
 aG.lookAt(endPos);aG.rotateX(Math.PI/2);
 battleGroup.add(aG);
 const speed=5;const dist=startPos.distanceTo(endPos);const life=dist/speed;
-particles.push({mesh:aG,vel:dir.multiplyScalar(speed),life:life+.1,parent:battleGroup,gravity:false,isArrow:true});
+particles.push({mesh:aG,vel:dir.multiplyScalar(speed),life:life+.1,parent:battleGroup,gravity:false,isArrow:true,
+    arrowDmg:dmg,arrowTarget:near,arrowShooter:u,arrowIsPlayer:isP,arrowAbility:ab});
 if(u.userData.leftArm){u.userData.leftArm.rotation.x=-1.0;setTimeout(()=>{if(u.userData.leftArm)u.userData.leftArm.rotation.x=0},400)}
-}
+}else{
+// Melee — apply damage immediately
+near.userData.hp-=dmg;
+flashUnit(near);updateHPBar(near);spawnHitParticles(near.position,isP?0xDD3333:0xFFD700);
 // Sword swing visual
 if(wpn==='sword'&&u.userData.weaponMesh){u.userData.weaponMesh.rotation.x=-1.5;setTimeout(()=>{if(u.userData.weaponMesh)u.userData.weaponMesh.rotation.x=0},150)}
 // Lifesteal — heal 25% of damage dealt
@@ -1107,6 +1166,7 @@ for(const s of splash){s.userData.hp-=Math.round(dmg*0.3);updateHPBar(s);spawnHi
 // Sticky — slow ALL nearby enemies for 1s on hit
 if(ab.includes('sticky')){const stuck=(isP?gs.enemyUnits:gs.playerUnits).filter(e=>e.userData.hp>0&&e.position.distanceTo(u.position)<3);
 for(const s of stuck)s.userData.slowTimer=Math.max(s.userData.slowTimer||0,1.0)}
+}
 }
 // Warp — 20% chance to teleport behind a random enemy after attacking
 if(ab.includes('warp')&&Math.random()<0.2){const re=(isP?gs.enemyUnits:gs.playerUnits).filter(e=>e.userData.hp>0);
@@ -1163,7 +1223,7 @@ function endBattle(won){try{if(gs.screen==='victory'||gs.screen==='defeat'||gs.s
 const survivors=[];for(const u of gs.playerUnits)if(u.userData.hp>0){const o=gs.army[u.userData.armyIndex];if(o)survivors.push({...o,hp:u.userData.hp})}
 gs.army=survivors;
 [...gs.playerUnits,...gs.enemyUnits].forEach(u=>battleGroup.remove(u));gs.playerUnits=[];gs.enemyUnits=[];
-$('battle-hud').style.display='none';const sc=survivors.length;
+$('battle-hud').style.display='none';$('attack-btn').style.display='none';const sc=survivors.length;
 if(won){const rw=STAGES[gs.currentStage].reward;gs.manicorns+=rw;const cr=gs.compostCount;gs.nanaCoins+=cr;
 // Random fertilizer drop on victory
 const fertKeys=Object.keys(FERTILIZERS).filter(k=>isFertInSeason(k)&&!FERTILIZERS[k].special);const dropKey=fertKeys.length?fertKeys[Math.floor(Math.random()*fertKeys.length)]:'plainana';gs.fertilizers[dropKey]=(gs.fertilizers[dropKey]||0)+1;
@@ -1199,7 +1259,24 @@ const particles=[];
 function deathEffect(u){const pos=u.position.clone(),col=u.userData.type==='banana'?0xFFD700:0xDC3030;for(let i=0;i<12;i++){const sz=.03+Math.random()*.05;const p=mkS(sz,new THREE.MeshBasicMaterial({color:col,transparent:true}));p.position.copy(pos).add(new THREE.Vector3(0,.5,0));battleGroup.add(p);particles.push({mesh:p,vel:new THREE.Vector3((Math.random()-.5)*5,Math.random()*4+1,(Math.random()-.5)*5),life:1,parent:battleGroup,gravity:true})}}
 function spawnHitParticles(pos,col){for(let i=0;i<4;i++){const p=mkS(.02,new THREE.MeshBasicMaterial({color:col,transparent:true}));p.position.copy(pos).add(new THREE.Vector3(0,.5,0));battleGroup.add(p);particles.push({mesh:p,vel:new THREE.Vector3((Math.random()-.5)*3,Math.random()*2+.5,(Math.random()-.5)*3),life:.5,parent:battleGroup,gravity:true})}}
 function flashUnit(u){const ch=[];u.traverse(c=>{if(c.isMesh&&c.material?.color&&c!==u.userData.hpFill)ch.push({m:c,c:c.material.color.getHex()})});ch.forEach(c=>c.m.material.color.set(0xFFFFFF));setTimeout(()=>ch.forEach(c=>c.m.material.color.set(c.c)),80)}
-function updateParticles(dt){for(let i=particles.length-1;i>=0;i--){const p=particles[i];if(p.gravity)p.vel.y-=12*dt;p.mesh.position.add(p.vel.clone().multiplyScalar(dt));p.life-=dt*(p.isArrow?1:2.5);if(!p.isArrow){if(p.mesh.material)p.mesh.material.opacity=Math.max(0,p.life);p.mesh.scale.setScalar(Math.max(.1,p.life))}if(p.life<=0){p.parent.remove(p.mesh);particles.splice(i,1)}}}
+function updateParticles(dt){for(let i=particles.length-1;i>=0;i--){const p=particles[i];if(p.gravity)p.vel.y-=12*dt;p.mesh.position.add(p.vel.clone().multiplyScalar(dt));p.life-=dt*(p.isArrow?1:2.5);if(!p.isArrow){if(p.mesh.material)p.mesh.material.opacity=Math.max(0,p.life);p.mesh.scale.setScalar(Math.max(.1,p.life))}if(p.life<=0){
+// Arrow hit — apply deferred damage on arrival
+if(p.isArrow&&p.arrowTarget&&p.arrowTarget.userData.hp>0){
+const t=p.arrowTarget,dmg=p.arrowDmg,isP=p.arrowIsPlayer,ab=p.arrowAbility||'',shooter=p.arrowShooter;
+t.userData.hp-=dmg;flashUnit(t);updateHPBar(t);spawnHitParticles(t.position,isP?0xDD3333:0xFFD700);
+if(ab.includes('lifesteal')&&shooter&&shooter.userData.hp>0){shooter.userData.hp=Math.min(shooter.userData.maxHp,shooter.userData.hp+Math.round(dmg*0.25));updateHPBar(shooter)}
+if(ab.includes('burn')){t.userData.burnTimer=(t.userData.burnTimer||0)+2.0}
+if(ab.includes('poison')){t.userData.poisonTimer=(t.userData.poisonTimer||0)+3.0}
+if(ab.includes('slow')){t.userData.slowTimer=2.0}
+if(ab.includes('stun')&&Math.random()<0.3){t.userData.stunTimer=0.6;spawnHitParticles(t.position,0xFFFF00)}
+if(ab.includes('chain')){const others=(isP?gs.enemyUnits:gs.playerUnits).filter(e=>e.userData.hp>0&&e!==t&&e.position.distanceTo(t.position)<3);
+if(others.length){const t2=others[Math.floor(Math.random()*others.length)];t2.userData.hp-=Math.round(dmg*0.4);updateHPBar(t2);spawnHitParticles(t2.position,0xFFFF00)}}
+if(ab.includes('aoe')){const splash=(isP?gs.enemyUnits:gs.playerUnits).filter(e=>e.userData.hp>0&&e!==t&&e.position.distanceTo(t.position)<2.5);
+for(const s of splash){s.userData.hp-=Math.round(dmg*0.3);updateHPBar(s);spawnHitParticles(s.position,0x33FF33)}}
+if(ab.includes('sticky')){const stuck=(isP?gs.enemyUnits:gs.playerUnits).filter(e=>e.userData.hp>0&&e.position.distanceTo(t.position)<3);
+for(const s of stuck)s.userData.slowTimer=Math.max(s.userData.slowTimer||0,1.0)}
+}
+p.parent.remove(p.mesh);particles.splice(i,1)}}}
 function updateHPBar(u){const r=Math.max(0,u.userData.hp/u.userData.maxHp);if(u.userData.hpFill){u.userData.hpFill.scale.x=Math.max(.01,r);u.userData.hpFill.position.x=-(1-r)*.28;u.userData.hpFill.material.color.setHex(r>.5?0x44FF44:r>.25?0xFFFF00:0xFF4444)}}
 
 // ===========================================================
@@ -1487,6 +1564,24 @@ for(const en of gs.enemyUnits){if(raycaster.intersectObject(en,true).length>0){g
 // Click on ground — move there
 const groundPlane=new THREE.Plane(new THREE.Vector3(0,1,0),0);const pt=new THREE.Vector3();raycaster.ray.intersectPlane(groundPlane,pt);if(pt){gs.selectedUnit.userData.moveTarget=pt.clone();gs.selectedUnit.userData.forceTarget=null;showNotification('Moving!')}
 }}});
+
+// === MANUAL ATTACK (F key or Attack button) ===
+function manualAttack(){
+if(gs.screen!=='battle'||!gs.battleActive)return;
+if(!gs.selectedUnit||gs.selectedUnit.userData.hp<=0){
+const alive=gs.playerUnits.filter(u=>u.userData.hp>0);
+if(!alive.length)return;
+gs.selectedUnit=alive[0];gs.selectedUnit.userData.selected=true;
+}
+const u=gs.selectedUnit;
+const enemies=gs.enemyUnits.filter(e=>e.userData.hp>0);if(!enemies.length)return;
+let near=null,nd=Infinity;
+for(const e of enemies){const d=u.position.distanceTo(e.position);if(d<nd){nd=d;near=e}}
+if(near){u.userData.forceTarget=near;u.userData.moveTarget=null}
+}
+$('attack-btn').addEventListener('click',manualAttack);
+$('attack-btn').addEventListener('touchstart',e=>{e.preventDefault();manualAttack()});
+addEventListener('keydown',e=>{if((e.key==='f'||e.key==='F')&&!e.repeat)manualAttack()});
 
 // ===========================================================
 // CAMERA - Full orbit/zoom/pan with preset views
