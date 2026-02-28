@@ -187,7 +187,7 @@ const s=[
 {name:'Castle Outskirts',cutscene:true,enemies:[{hp:160,atk:18,speed:2.4,scale:1,weapon:'sword'},{hp:160,atk:18,speed:2.4,scale:1,weapon:'sword'},{hp:160,atk:18,speed:2.4,scale:1,weapon:'sword'},{hp:160,atk:18,speed:2.4,scale:1,weapon:'sword'},{hp:120,atk:14,speed:2,scale:.9,weapon:'bow'},{hp:120,atk:14,speed:2,scale:.9,weapon:'bow'},{hp:120,atk:14,speed:2,scale:.9,weapon:'bow'},{hp:120,atk:14,speed:2,scale:.9,weapon:'bow'},{hp:350,atk:32,speed:2.2,scale:1.7,boss:true,weapon:'sword'}],reward:80}
 ];
 const regionNames=['Ketchup Fields','Salsa Swamp','Vine Maze','Sauce River','Red Valley','Pulp Canyon','Seed Desert','Rotten Marsh','Juice Falls','Stem Ridge','Tomato Trench','Crimson Hills','Paste Mines','Sun Dried Plains','Cherry Bomb Bay','Heirloom Heights','Greenhouse Ruins','Harvest Wastes','Nightshade Forest','Splatter Gorge'];
-const levelTypes=['swarm','tank','archer','balanced','boss'];
+const levelTypes=['swarm','horde','tank','archer','horde','balanced','boss','horde'];
 for(let i=4;i<999;i++){
 const t=i/999;
 const curve=Math.pow(t,1.4);
@@ -203,6 +203,7 @@ if(type==='swarm'){const c=8+Math.floor(curve*12);for(let e=0;e<c;e++)enemies.pu
 else if(type==='tank'){const c=4+Math.floor(curve*6);for(let e=0;e<c;e++)enemies.push({hp:Math.floor(hp*2),atk:Math.floor(atk*1.3),speed:Math.round(spd*.7*100)/100,scale:Math.round(Math.min(sc*1.4,2)*100)/100,weapon:hasWpn?'sword':undefined})}
 else if(type==='archer'){const c=5+Math.floor(curve*8);for(let e=0;e<c;e++)enemies.push({hp:Math.floor(hp*.8),atk:Math.floor(atk*1.1),speed:Math.round(spd*.9*100)/100,scale:Math.round(sc*.9*100)/100,weapon:'bow'});for(let e=0;e<2+Math.floor(curve*3);e++)enemies.push({hp:Math.floor(hp*1.5),atk:Math.floor(atk*1.5),speed:spd,scale:Math.round(Math.min(sc*1.2,1.8)*100)/100,weapon:'sword'})}
 else if(type==='balanced'){const c=5+Math.floor(curve*8);for(let e=0;e<c;e++)enemies.push({hp:hp,atk:atk,speed:spd,scale:sc,weapon:hasWpn?(e%2===0?'sword':'bow'):undefined})}
+else if(type==='horde'){const c=40+Math.floor(curve*20);for(let e=0;e<c;e++)enemies.push({hp:Math.floor(hp*.35),atk:Math.floor(atk*.5),speed:Math.round(spd*(.9+Math.random()*.4)*100)/100,scale:Math.round(sc*.65*100)/100,weapon:hasWpn?(Math.random()>.7?'bow':'sword'):undefined})}
 else{const c=5+Math.floor(curve*8);for(let e=0;e<c;e++)enemies.push({hp:hp,atk:atk,speed:spd,scale:sc,weapon:hasWpn?'sword':undefined});enemies.push({hp:Math.floor(hp*3),atk:Math.floor(atk*2.5),speed:Math.round(spd*.8*100)/100,scale:Math.round(Math.min(sc*1.7,2.3)*100)/100,boss:true,weapon:hasWpn?'sword':undefined})}
 const rn=regionNames[i%regionNames.length];
 const tier=Math.floor(i/regionNames.length)+1;
@@ -1086,7 +1087,12 @@ buildBattleMap(stage.name);
 gs.army.forEach((s,i)=>{const boosted=applyShopAbilities({hp:s.hp,maxHp:s.hp,atk:s.atk,speed:s.speed,color:s.color,color2:s.color2,fertType:s.fertType,ability:s.ability,weapon:s.weapon||null});const sol=createBananaSoldier(boosted);sol.userData.armyIndex=i;const sp=gs.army.length>1?(i/(gs.army.length-1))*6-3:0;
 // Traitor ability — 50% chance banana switches to enemy side
 if(s.ability&&s.ability.includes('traitor')&&Math.random()<0.5){sol.position.set(12,0,sp+7);sol.rotation.y=-Math.PI/2;sol.userData.type='tomato';battleGroup.add(sol);gs.enemyUnits.push(sol)}else{sol.position.set(-12,0,sp);sol.rotation.y=Math.PI/2;battleGroup.add(sol);gs.playerUnits.push(sol)}});
-stage.enemies.forEach((es,i)=>{const typed=applyTomatoType(es);const en=createTomatoEnemy(typed);const sp=stage.enemies.length>1?(i/(stage.enemies.length-1))*6-3:0;en.position.set(12,0,sp);en.rotation.y=-Math.PI/2;battleGroup.add(en);gs.enemyUnits.push(en)});
+stage.enemies.forEach((es,i)=>{const typed=applyTomatoType(es);const en=createTomatoEnemy(typed);
+const total=stage.enemies.length;
+let ex,ez;
+if(total>15){const cols=Math.ceil(Math.sqrt(total));const row=Math.floor(i/cols);const col=i%cols;const zSpread=Math.min(total,cols)*0.8;const xSpread=Math.ceil(total/cols)*1.2;ex=10+row*xSpread/(Math.ceil(total/cols))+Math.random()*.3;ez=(col/(cols-1||1))*zSpread-zSpread/2+Math.random()*.3}
+else{ex=12;ez=total>1?(i/(total-1))*6-3:0}
+en.position.set(ex,0,ez);en.rotation.y=-Math.PI/2;battleGroup.add(en);gs.enemyUnits.push(en)});
 $('hud').style.display='block';$('army-panel').style.display='none';$('battle-btn').style.display='none';$('hint-text').style.display='none';$('compost-bar').style.display='none';$('fert-panel').style.display='none';$('active-fert-indicator').style.display='none';$('save-btns').style.display='none';$('stage-select-panel').style.display='none';$('mani-panel').style.display='none';$('battle-hud').style.display='block';$('attack-btn').style.display='block';setCamPreset('default',true);updateBattleHUD();
 if(gs.currentStage===9)setTimeout(()=>showNotification('NEW: Click bananas to select, then click ground to move or click enemies to target!'),1500)}
 
