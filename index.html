@@ -1296,11 +1296,11 @@ if(ab.includes('sticky')){const stuck=(isP?gs.enemyUnits:gs.playerUnits).filter(
 for(const s of stuck)s.userData.slowTimer=Math.max(s.userData.slowTimer||0,1.0)}
 }
 function updateParticles(dt){for(let i=particles.length-1;i>=0;i--){const p=particles[i];if(p.gravity)p.vel.y-=12*dt;p.mesh.position.add(p.vel.clone().multiplyScalar(dt));p.life-=dt*(p.isArrow?1:2.5);if(!p.isArrow){if(p.mesh.material)p.mesh.material.opacity=Math.max(0,p.life);p.mesh.scale.setScalar(Math.max(.1,p.life))}
-// Arrow in-flight collision — hits anyone in its path
+// Arrow in-flight collision — hits enemies in its path
 if(p.isArrow&&p.life>0){
 const aPos=p.mesh.position;const hitRadius=0.6;let hitUnit=null;
-const allUnits=[...gs.playerUnits,...gs.enemyUnits];
-for(const u of allUnits){if(u.userData.hp<=0)continue;if(u===p.arrowShooter)continue;
+const targets=p.arrowIsPlayer?gs.enemyUnits:gs.playerUnits;
+for(const u of targets){if(u.userData.hp<=0)continue;
 const d=aPos.distanceTo(u.position.clone().add(new THREE.Vector3(0,.5,0)));
 if(d<hitRadius){hitUnit=u;break}}
 if(hitUnit){arrowHit(hitUnit,p);p.parent.remove(p.mesh);particles.splice(i,1);continue}}
