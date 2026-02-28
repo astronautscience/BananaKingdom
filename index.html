@@ -47,6 +47,7 @@ canvas{display:block;position:fixed;top:0;left:0;z-index:1;touch-action:none}
 .notification{position:fixed;top:80px;left:50%;transform:translateX(-50%);z-index:30;background:rgba(0,0,0,.8);color:#FFD700;padding:10px 24px;border-radius:8px;font-weight:600;pointer-events:none;animation:notifAnim 2s ease-out forwards;backdrop-filter:blur(4px)}
 @keyframes notifAnim{0%{opacity:0;transform:translateX(-50%) translateY(-10px)}15%{opacity:1;transform:translateX(-50%) translateY(0)}70%{opacity:1}100%{opacity:0;transform:translateX(-50%) translateY(-20px)}}
 #compost-bar{position:fixed;bottom:15px;left:50%;transform:translateX(-50%);z-index:10;display:none;background:rgba(80,50,20,.85);color:#ddd;padding:8px 20px;border-radius:8px;font-size:.85rem;pointer-events:none;backdrop-filter:blur(4px);border:1px solid rgba(139,105,20,.4)}
+#select-circle{position:fixed;z-index:5;pointer-events:none;border:3px solid rgba(80,160,255,.8);border-radius:50%;background:rgba(80,160,255,.15);display:none;transform:translate(-50%,-50%)}
 #attack-btn{position:fixed;top:50px;left:15px;z-index:15;display:none;width:70px;height:70px;background:linear-gradient(135deg,#c0392b,#e74c3c);color:#fff;border:3px solid #ff6655;border-radius:16px;font-size:1.6rem;font-weight:700;cursor:pointer;pointer-events:auto;box-shadow:0 4px 16px rgba(231,76,60,.5);transition:transform .1s,background .1s;user-select:none;-webkit-tap-highlight-color:transparent;line-height:1}
 #attack-btn:hover{transform:scale(1.08);background:linear-gradient(135deg,#e74c3c,#ff5544)}
 #attack-btn:active{transform:scale(.95);background:#a02015}
@@ -113,6 +114,7 @@ canvas{display:block;position:fixed;top:0;left:0;z-index:1;touch-action:none}
 <div id="stage-select-panel" style="position:fixed;left:10px;bottom:15px;z-index:15;display:none;background:rgba(0,0,0,.85);border-radius:8px;padding:8px;color:#fff;width:155px;pointer-events:auto;backdrop-filter:blur(4px);border:1px solid rgba(255,215,0,.5);max-height:200px;overflow-y:auto;box-shadow:0 3px 12px rgba(0,0,0,.6)"><h3 style="font-size:.7rem;color:#FFD700;margin-bottom:5px;text-align:center">Select Stage</h3><div id="stage-list"></div></div>
 <div id="mani-panel"><h3>&#x1F984; Manicorn Shop</h3><div id="mani-tabs"><button class="active" data-tab="tree">&#x1F333;Tree</button><button data-tab="army">&#x2694;&#xFE0F;Army</button><button data-tab="mercs">&#x1F451;Mercs</button><button data-tab="abilities">&#x2728;Powers</button></div><div id="mani-list"></div><button id="mani-buy-btn" disabled>Select an upgrade</button></div>
 <div id="hint-text">Click bananas on the tree to harvest!</div>
+<div id="select-circle"></div>
 <button id="attack-btn">&#x2694;&#xFE0F;<span class="atk-key">[F]</span></button>
 <div id="battle-hud"><span id="b-banana-count">0</span> <span class="vs">VS</span> <span id="b-tomato-count">0</span></div>
 <div id="result-overlay"><h2 id="result-title">Victory!</h2><div class="reward-text" id="result-text"></div><div id="result-buttons"></div></div>
@@ -1107,7 +1109,15 @@ if(u.userData.forceTarget&&u.userData.forceTarget.userData.hp>0){near=u.userData
 else{u.userData.forceTarget=null;for(const e of enemies){const d=u.position.distanceTo(e.position);if(d<nd){nd=d;near=e}}}
 u.userData.attackCooldown-=dt;
 const wpn=u.userData.stats.weapon||null;const atkRange=wpn==='bow'?8.0:1.2;const atkCD=wpn==='bow'?0.8:wpn==='sword'?0.6:0.8;
-if(nd<=atkRange){if(u.userData.attackCooldown<=0){
+// If unit has a manual move order, skip attacking and move instead
+if(u.userData.moveTarget&&u.userData.type==='banana'){
+if(u.userData.stunTimer&&u.userData.stunTimer>0){/* stunned */}else{
+const d=u.position.distanceTo(u.userData.moveTarget);
+if(d<0.3){u.userData.moveTarget=null}else{
+const moveDir=new THREE.Vector3().subVectors(u.userData.moveTarget,u.position).normalize();
+let spd=u.userData.stats.speed||2;if(u.userData.slowTimer&&u.userData.slowTimer>0)spd*=0.5;
+u.position.x+=moveDir.x*spd*dt;u.position.z+=moveDir.z*spd*dt;u.rotation.y=Math.atan2(moveDir.x,moveDir.z)}}
+}else if(nd<=atkRange){if(u.userData.attackCooldown<=0){
 let dmg=u.userData.stats.atk;
 if(wpn==='bow')dmg=Math.round(dmg*1.5);
 const ab=u.userData.ability||'';
@@ -1265,24 +1275,36 @@ const particles=[];
 function deathEffect(u){const pos=u.position.clone(),col=u.userData.type==='banana'?0xFFD700:0xDC3030;for(let i=0;i<12;i++){const sz=.03+Math.random()*.05;const p=mkS(sz,new THREE.MeshBasicMaterial({color:col,transparent:true}));p.position.copy(pos).add(new THREE.Vector3(0,.5,0));battleGroup.add(p);particles.push({mesh:p,vel:new THREE.Vector3((Math.random()-.5)*5,Math.random()*4+1,(Math.random()-.5)*5),life:1,parent:battleGroup,gravity:true})}}
 function spawnHitParticles(pos,col){for(let i=0;i<4;i++){const p=mkS(.02,new THREE.MeshBasicMaterial({color:col,transparent:true}));p.position.copy(pos).add(new THREE.Vector3(0,.5,0));battleGroup.add(p);particles.push({mesh:p,vel:new THREE.Vector3((Math.random()-.5)*3,Math.random()*2+.5,(Math.random()-.5)*3),life:.5,parent:battleGroup,gravity:true})}}
 function flashUnit(u){const ch=[];u.traverse(c=>{if(c.isMesh&&c.material?.color&&c!==u.userData.hpFill)ch.push({m:c,c:c.material.color.getHex()})});ch.forEach(c=>c.m.material.color.set(0xFFFFFF));setTimeout(()=>ch.forEach(c=>c.m.material.color.set(c.c)),80)}
-function updateParticles(dt){for(let i=particles.length-1;i>=0;i--){const p=particles[i];if(p.gravity)p.vel.y-=12*dt;p.mesh.position.add(p.vel.clone().multiplyScalar(dt));p.life-=dt*(p.isArrow?1:2.5);if(!p.isArrow){if(p.mesh.material)p.mesh.material.opacity=Math.max(0,p.life);p.mesh.scale.setScalar(Math.max(.1,p.life))}if(p.life<=0){
-// Arrow hit — apply deferred damage on arrival
-if(p.isArrow&&p.arrowTarget&&p.arrowTarget.userData.hp>0){
-const t=p.arrowTarget,dmg=p.arrowDmg,isP=p.arrowIsPlayer,ab=p.arrowAbility||'',shooter=p.arrowShooter;
-t.userData.hp-=dmg;flashUnit(t);updateHPBar(t);spawnHitParticles(t.position,isP?0xDD3333:0xFFD700);
+function arrowHit(target,p){
+const dmg=p.arrowDmg,isP=p.arrowIsPlayer,ab=p.arrowAbility||'',shooter=p.arrowShooter;
+target.userData.hp-=dmg;flashUnit(target);updateHPBar(target);spawnHitParticles(target.position,isP?0xDD3333:0xFFD700);
+// Stick arrow in the target
+const stuck=p.mesh.clone();const offset=new THREE.Vector3((Math.random()-.5)*.2,(.3+Math.random()*.3)*(target.userData.stats.scale||1),(Math.random()*.1+.1)*(target.userData.stats.scale||1));
+stuck.position.copy(offset);stuck.scale.setScalar(.6);target.add(stuck);
+if(!target.userData.stuckArrows)target.userData.stuckArrows=[];
+target.userData.stuckArrows.push(stuck);
 if(ab.includes('lifesteal')&&shooter&&shooter.userData.hp>0){shooter.userData.hp=Math.min(shooter.userData.maxHp,shooter.userData.hp+Math.round(dmg*0.25));updateHPBar(shooter)}
-if(ab.includes('burn')){t.userData.burnTimer=(t.userData.burnTimer||0)+2.0}
-if(ab.includes('poison')){t.userData.poisonTimer=(t.userData.poisonTimer||0)+3.0}
-if(ab.includes('slow')){t.userData.slowTimer=2.0}
-if(ab.includes('stun')&&Math.random()<0.3){t.userData.stunTimer=0.6;spawnHitParticles(t.position,0xFFFF00)}
-if(ab.includes('chain')){const others=(isP?gs.enemyUnits:gs.playerUnits).filter(e=>e.userData.hp>0&&e!==t&&e.position.distanceTo(t.position)<3);
+if(ab.includes('burn')){target.userData.burnTimer=(target.userData.burnTimer||0)+2.0}
+if(ab.includes('poison')){target.userData.poisonTimer=(target.userData.poisonTimer||0)+3.0}
+if(ab.includes('slow')){target.userData.slowTimer=2.0}
+if(ab.includes('stun')&&Math.random()<0.3){target.userData.stunTimer=0.6;spawnHitParticles(target.position,0xFFFF00)}
+if(ab.includes('chain')){const others=(isP?gs.enemyUnits:gs.playerUnits).filter(e=>e.userData.hp>0&&e!==target&&e.position.distanceTo(target.position)<3);
 if(others.length){const t2=others[Math.floor(Math.random()*others.length)];t2.userData.hp-=Math.round(dmg*0.4);updateHPBar(t2);spawnHitParticles(t2.position,0xFFFF00)}}
-if(ab.includes('aoe')){const splash=(isP?gs.enemyUnits:gs.playerUnits).filter(e=>e.userData.hp>0&&e!==t&&e.position.distanceTo(t.position)<2.5);
+if(ab.includes('aoe')){const splash=(isP?gs.enemyUnits:gs.playerUnits).filter(e=>e.userData.hp>0&&e!==target&&e.position.distanceTo(target.position)<2.5);
 for(const s of splash){s.userData.hp-=Math.round(dmg*0.3);updateHPBar(s);spawnHitParticles(s.position,0x33FF33)}}
-if(ab.includes('sticky')){const stuck=(isP?gs.enemyUnits:gs.playerUnits).filter(e=>e.userData.hp>0&&e.position.distanceTo(t.position)<3);
+if(ab.includes('sticky')){const stuck=(isP?gs.enemyUnits:gs.playerUnits).filter(e=>e.userData.hp>0&&e.position.distanceTo(target.position)<3);
 for(const s of stuck)s.userData.slowTimer=Math.max(s.userData.slowTimer||0,1.0)}
 }
-p.parent.remove(p.mesh);particles.splice(i,1)}}}
+function updateParticles(dt){for(let i=particles.length-1;i>=0;i--){const p=particles[i];if(p.gravity)p.vel.y-=12*dt;p.mesh.position.add(p.vel.clone().multiplyScalar(dt));p.life-=dt*(p.isArrow?1:2.5);if(!p.isArrow){if(p.mesh.material)p.mesh.material.opacity=Math.max(0,p.life);p.mesh.scale.setScalar(Math.max(.1,p.life))}
+// Arrow in-flight collision — hits anyone in its path
+if(p.isArrow&&p.life>0){
+const aPos=p.mesh.position;const hitRadius=0.6;let hitUnit=null;
+const allUnits=[...gs.playerUnits,...gs.enemyUnits];
+for(const u of allUnits){if(u.userData.hp<=0)continue;if(u===p.arrowShooter)continue;
+const d=aPos.distanceTo(u.position.clone().add(new THREE.Vector3(0,.5,0)));
+if(d<hitRadius){hitUnit=u;break}}
+if(hitUnit){arrowHit(hitUnit,p);p.parent.remove(p.mesh);particles.splice(i,1);continue}}
+if(p.life<=0){p.parent.remove(p.mesh);particles.splice(i,1)}}}
 function updateHPBar(u){const r=Math.max(0,u.userData.hp/u.userData.maxHp);if(u.userData.hpFill){u.userData.hpFill.scale.x=Math.max(.01,r);u.userData.hpFill.position.x=-(1-r)*.28;u.userData.hpFill.material.color.setHex(r>.5?0x44FF44:r>.25?0xFFFF00:0xFF4444)}}
 
 // ===========================================================
@@ -1560,30 +1582,118 @@ function updateTreeFertVisual(){
 // ===========================================================
 // INPUT
 // ===========================================================
-renderer.domElement.addEventListener('pointerdown',e=>{if(gs.screen==='kingdom'){const b=getClickedBanana(e);if(b)harvestBanana(b)}else if(gs.screen==='battle'){
+// Multi-select state
+gs.selectedUnits=[];
+let dragSelect={active:false,startX:0,startY:0,holdTimer:null,radius:0};
+const selectCircleEl=$('select-circle');
+
+function clearSelection(){gs.selectedUnits.forEach(u=>{if(u.userData)u.userData.selected=false});gs.selectedUnits=[];gs.selectedUnit=null}
+function selectUnits(units){clearSelection();gs.selectedUnits=units;units.forEach(u=>{u.userData.selected=true});gs.selectedUnit=units[0]||null}
+function commandSelectedUnits(fn){const units=gs.selectedUnits.length?gs.selectedUnits:(gs.selectedUnit?[gs.selectedUnit]:[]);units.forEach((u,i)=>fn(u,i))}
+
+renderer.domElement.addEventListener('pointerdown',e=>{
+if(gs.screen==='kingdom'){const b=getClickedBanana(e);if(b)harvestBanana(b);return}
+if(gs.screen!=='battle')return;
 const canControl=gs.currentStage>=9;
-const u=getClickedBattleUnit(e);if(u){if(gs.selectedUnit)gs.selectedUnit.userData.selected=false;gs.selectedUnit=u;u.userData.selected=true;showNotification(canControl?'Banana selected! Click ground to move, click enemy to target.':'Banana selected!')}
-else if(canControl&&gs.selectedUnit){
-const px=e.clientX??e.touches?.[0]?.clientX,py=e.clientY??e.touches?.[0]?.clientY;if(px==null)return;mouse.x=(px/innerWidth)*2-1;mouse.y=-(py/innerHeight)*2+1;raycaster.setFromCamera(mouse,camera);
-// Check if clicked an enemy
-for(const en of gs.enemyUnits){if(raycaster.intersectObject(en,true).length>0){gs.selectedUnit.userData.forceTarget=en;gs.selectedUnit.userData.moveTarget=null;showNotification('Targeting enemy!');return}}
-// Click on ground — move there
-const groundPlane=new THREE.Plane(new THREE.Vector3(0,1,0),0);const pt=new THREE.Vector3();raycaster.ray.intersectPlane(groundPlane,pt);if(pt){gs.selectedUnit.userData.moveTarget=pt.clone();gs.selectedUnit.userData.forceTarget=null;showNotification('Moving!')}
-}}});
+const px=e.clientX??e.touches?.[0]?.clientX,py=e.clientY??e.touches?.[0]?.clientY;if(px==null)return;
+
+// Start drag select timer
+dragSelect.startX=px;dragSelect.startY=py;dragSelect.radius=0;dragSelect.active=false;
+if(canControl){dragSelect.holdTimer=setTimeout(()=>{dragSelect.active=true;selectCircleEl.style.display='block';selectCircleEl.style.left=px+'px';selectCircleEl.style.top=py+'px';selectCircleEl.style.width='0px';selectCircleEl.style.height='0px'},200)}
+});
+
+renderer.domElement.addEventListener('pointermove',e=>{
+if(!dragSelect.active&&!dragSelect.holdTimer)return;
+const px=e.clientX??e.touches?.[0]?.clientX,py=e.clientY??e.touches?.[0]?.clientY;if(px==null)return;
+if(dragSelect.active){
+const dx=px-dragSelect.startX,dy=py-dragSelect.startY;
+dragSelect.radius=Math.sqrt(dx*dx+dy*dy);
+const size=dragSelect.radius*2;
+selectCircleEl.style.width=size+'px';selectCircleEl.style.height=size+'px';
+selectCircleEl.style.left=dragSelect.startX+'px';selectCircleEl.style.top=dragSelect.startY+'px';
+}});
+
+renderer.domElement.addEventListener('pointerup',e=>{
+if(dragSelect.holdTimer){clearTimeout(dragSelect.holdTimer);dragSelect.holdTimer=null}
+const canControl=gs.currentStage>=9;
+const px=e.clientX??e.changedTouches?.[0]?.clientX,py=e.clientY??e.changedTouches?.[0]?.clientY;
+
+if(dragSelect.active&&dragSelect.radius>20){
+// Drag select — find all player bananas inside the circle
+const selected=[];
+for(const u of gs.playerUnits){if(u.userData.hp<=0)continue;
+const sp=u.position.clone().project(camera);
+const sx=(sp.x*.5+.5)*innerWidth,sy=(-.5*sp.y+.5)*innerHeight;
+const dx=sx-dragSelect.startX,dy=sy-dragSelect.startY;
+if(Math.sqrt(dx*dx+dy*dy)<=dragSelect.radius)selected.push(u)}
+if(selected.length){selectUnits(selected);showNotification(selected.length+' bananas selected!')}
+dragSelect.active=false;selectCircleEl.style.display='none';return}
+
+dragSelect.active=false;selectCircleEl.style.display='none';
+if(gs.screen!=='battle')return;
+
+// Normal click
+const u=getClickedBattleUnit(e);
+if(u){clearSelection();selectUnits([u]);showNotification(canControl?'Banana selected! Click ground to move, click enemy to target.':'Banana selected!')}
+else if(canControl&&gs.selectedUnits.length){
+if(px==null)return;mouse.x=(px/innerWidth)*2-1;mouse.y=-(py/innerHeight)*2+1;raycaster.setFromCamera(mouse,camera);
+// Check if clicked an enemy — all selected units target it
+for(const en of gs.enemyUnits){if(raycaster.intersectObject(en,true).length>0){commandSelectedUnits(u=>{u.userData.forceTarget=en;u.userData.moveTarget=null});showNotification('Targeting enemy!');return}}
+// Click on ground — all selected units move there (spread out)
+const groundPlane=new THREE.Plane(new THREE.Vector3(0,1,0),0);const pt=new THREE.Vector3();raycaster.ray.intersectPlane(groundPlane,pt);
+if(pt){const count=gs.selectedUnits.length;commandSelectedUnits((u,idx)=>{const spread=count>1?1.2:0;const angle=(idx/count)*Math.PI*2;const dest=pt.clone().add(new THREE.Vector3(Math.cos(angle)*spread,0,Math.sin(angle)*spread));u.userData.moveTarget=dest;u.userData.forceTarget=null});showNotification('Moving!')}
+}});
 
 // === MANUAL ATTACK (F key or Attack button) ===
 function manualAttack(){
 if(gs.screen!=='battle'||!gs.battleActive)return;
-if(!gs.selectedUnit||gs.selectedUnit.userData.hp<=0){
+if(!gs.selectedUnits.length&&(!gs.selectedUnit||gs.selectedUnit.userData.hp<=0)){
 const alive=gs.playerUnits.filter(u=>u.userData.hp>0);
 if(!alive.length)return;
-gs.selectedUnit=alive[0];gs.selectedUnit.userData.selected=true;
+selectUnits([alive[0]]);
 }
-const u=gs.selectedUnit;
-const enemies=gs.enemyUnits.filter(e=>e.userData.hp>0);if(!enemies.length)return;
-let near=null,nd=Infinity;
-for(const e of enemies){const d=u.position.distanceTo(e.position);if(d<nd){nd=d;near=e}}
-if(near){u.userData.forceTarget=near;u.userData.moveTarget=null}
+const units=gs.selectedUnits.length?gs.selectedUnits.filter(u=>u.userData.hp>0):(gs.selectedUnit?[gs.selectedUnit]:[]);
+for(const u of units){manualAttackUnit(u)}
+}
+function manualAttackUnit(u){
+const wpn=u.userData.stats.weapon||null;
+const isP=u.userData.type==='banana';
+const ab=u.userData.ability||'';
+let dmg=u.userData.stats.atk;
+if(wpn==='bow')dmg=Math.round(dmg*1.5);
+// Shoot/swing in the direction the banana is facing
+const dir=new THREE.Vector3(Math.sin(u.rotation.y),0,Math.cos(u.rotation.y));
+if(wpn==='bow'){
+// Fire arrow in facing direction
+const aG=new THREE.Group();
+const shaft=mkB(.04,.8,.04,new THREE.MeshStandardMaterial({color:0x886644}));aG.add(shaft);
+const head=mkCone(.1,.2,new THREE.MeshStandardMaterial({color:0xdddddd,metalness:.8}));P(head,0,.5,0);aG.add(head);
+const fMat=new THREE.MeshStandardMaterial({color:0xff3333});
+const f1=mkB(.06,.15,.005,fMat);P(f1,0,-.35,.02);f1.rotation.z=.2;aG.add(f1);
+const f2=mkB(.06,.15,.005,fMat);P(f2,0,-.35,-.02);f2.rotation.z=-.2;aG.add(f2);
+const startPos=u.position.clone().add(new THREE.Vector3(0,1.0,0));
+const endPos=startPos.clone().add(dir.clone().multiplyScalar(15));
+aG.position.copy(startPos);
+aG.lookAt(endPos);aG.rotateX(Math.PI/2);
+battleGroup.add(aG);
+const speed=5;const life=15/speed;
+particles.push({mesh:aG,vel:dir.clone().multiplyScalar(speed),life:life,parent:battleGroup,gravity:false,isArrow:true,
+    arrowDmg:dmg,arrowTarget:null,arrowShooter:u,arrowIsPlayer:isP,arrowAbility:ab});
+if(u.userData.leftArm){u.userData.leftArm.rotation.x=-1.0;setTimeout(()=>{if(u.userData.leftArm)u.userData.leftArm.rotation.x=0},400)}
+}else{
+// Melee swing — hit anyone in front within range
+if(u.userData.rightArm)u.userData.rightArm.rotation.x=-1.2;
+if(wpn==='sword'&&u.userData.weaponMesh){u.userData.weaponMesh.rotation.x=-1.5;setTimeout(()=>{if(u.userData.weaponMesh)u.userData.weaponMesh.rotation.x=0},150)}
+const enemies=gs.enemyUnits.filter(e=>e.userData.hp>0);
+for(const e of enemies){const toE=new THREE.Vector3().subVectors(e.position,u.position);const dist=toE.length();if(dist>1.8)continue;
+toE.normalize();const dot=dir.dot(toE);if(dot<0.3)continue;
+e.userData.hp-=dmg;flashUnit(e);updateHPBar(e);spawnHitParticles(e.position,0xDD3333);
+if(ab.includes('lifesteal')){u.userData.hp=Math.min(u.userData.maxHp,u.userData.hp+Math.round(dmg*0.25));updateHPBar(u)}
+if(ab.includes('burn')){e.userData.burnTimer=(e.userData.burnTimer||0)+2.0}
+break;
+}
+}
+u.userData.attackCooldown=wpn==='bow'?0.8:0.6;
 }
 $('attack-btn').addEventListener('click',manualAttack);
 $('attack-btn').addEventListener('touchstart',e=>{e.preventDefault();manualAttack()});
